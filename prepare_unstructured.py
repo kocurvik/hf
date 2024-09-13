@@ -347,7 +347,7 @@ def prepare_single(args, subset):
 
 def run_im(args):
     dataset_path = Path(args.dataset_path)
-    dir_list = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x)) and '_' in x]
+    dir_list = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x)) and '_' not in x]
 
     for subset in dir_list:
         prepare_single(args, subset)
