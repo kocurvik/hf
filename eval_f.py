@@ -355,9 +355,13 @@ def eval(args):
     title = f'Scene: {os.path.basename(dataset_path)} \n'
     title += f'Matches: {matches_basename}\n'
 
-    draw_results_focal_auc10(results, experiments, iterations_list, title=title + 'f AUC@0.1')
+    fig_save_name = f'{os.path.basename(dataset_path)}_{matches_basename}.png'
+
+    draw_results_focal_auc10(results, experiments, iterations_list, title=title + 'f AUC-0.1',
+                             save=f'figs/auc10f_{fig_save_name}')
     plt.show()
-    draw_results_focal_median(results, experiments, iterations_list, title=title + 'f median')
+    draw_results_focal_median(results, experiments, iterations_list, title=title + 'f median',
+                              save=f'figs/medf_{fig_save_name}')
     plt.show()
 
 if __name__ == '__main__':

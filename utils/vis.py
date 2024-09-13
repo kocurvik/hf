@@ -11,7 +11,7 @@ from utils.data import colors, experiments, iterations_list, get_basenames, pose
 large_size = 12
 small_size = 10
 
-def draw_results_focal_auc10(results, experiments, iterations_list, title=''):
+def draw_results_focal_auc10(results, experiments, iterations_list, title='', save=None):
     plt.figure()
 
     for experiment in tqdm(experiments):
@@ -41,9 +41,12 @@ def draw_results_focal_auc10(results, experiments, iterations_list, title=''):
     plt.tick_params(axis='x', which='major', labelsize=small_size)
     plt.tick_params(axis='y', which='major', labelsize=small_size)
     plt.legend()
-    plt.show()
+    if save:
+        plt.savefig(save)
+    else:
+        plt.show()
 
-def draw_results_focal_median(results, experiments, iterations_list, title=''):
+def draw_results_focal_median(results, experiments, iterations_list, title='', save=None):
     plt.figure()
 
     for experiment in tqdm(experiments):
@@ -63,8 +66,6 @@ def draw_results_focal_median(results, experiments, iterations_list, title=''):
 
         plt.semilogx(xs, ys, label=experiment, marker='*')
 
-    # title += f"Error: max(0.5 * (out['R_12_err'] + out['R_13_err']), 0.5 * (out['t_12_err'] + out['t_13_err']))"
-
     plt.title(title, fontsize=8)
 
     plt.xlabel('Mean runtime (ms)', fontsize=large_size)
@@ -72,7 +73,10 @@ def draw_results_focal_median(results, experiments, iterations_list, title=''):
     plt.tick_params(axis='x', which='major', labelsize=small_size)
     plt.tick_params(axis='y', which='major', labelsize=small_size)
     plt.legend()
-    plt.show()
+    if save:
+        plt.savefig(save)
+    else:
+        plt.show()
 
 
 def draw_results_pose_auc10(results, experiments, iterations_list, title=None):
