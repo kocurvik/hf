@@ -129,9 +129,9 @@ def run_synth():
     t13 = -R13 @ c2
     # t13 = 2 * t13 * np.linalg.norm(t12) / np.linalg.norm(t13)
 
-    x1, x2, x3, X = get_scene(f, R12, t12, R13, t13, 100, dominant_plane=0.8)
+    x1, x2, x3, X = get_scene(f, R12, t12, R13, t13, 100, dominant_plane=0.95)
 
-    sigma = 2.5
+    sigma = 0.0
 
     x1 += sigma * np.random.randn(*(x1.shape))
     x2 += sigma * np.random.randn(*(x1.shape))
@@ -162,17 +162,27 @@ def run_synth():
     ransac_dict = {'max_epipolar_error': 2.5, 'progressive_sampling': False,
                    'min_iterations': 1, 'max_iterations': 100, 'lo_iterations': 0,
                    'inner_refine': False, 'threeview_check': True, 'use_homography': True, 'scaled_relpose': True,
-                   'use_hc': False}
+                   'use_hc': False, 'use_degensac': True}
 
     pp = np.array([0, 0])
+
+    out, info = poselib.estimate_shared_focal_relative_pose(x1, x2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
+    focal = out.camera1.focal()
+    print(focal)
+    print(out.pose.R)
+    print(rotation_angle(out.pose.R.T @ R12))
+    print(angle(out.pose.t, t12))
+
+
     # out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
     # pose = out.poses
 
-    focals = poselib.focal_from_homography(x1, x2, x1, x3, pp, 100, 0.2, 5.0)
 
-    print(focals)
-    print(len(focals))
-    print(len(np.unique(focals)))
+
+    # focals = poselib.focal_from_homography(x1, x2, x1, x3, pp, 100, 0.2, 5.0)
+    # print(focals)
+    # print(len(focals))
+    # print(len(np.unique(focals)))
 
     # print("R errs")
     # print(rotation_angle(pose.pose12.R.T @ R12))
@@ -190,11 +200,11 @@ def run_synth():
     # print("Info")
     # print(f'iterations: {info["iterations"]} \t num_inliers: {info["num_inliers"] / len(x1)}')
 
-    # inlier_ratio = info["num_inliers"] / len(x1)
+    inlier_ratio = info["num_inliers"] / len(x1)
 
     # return out5['iterations'], out4['iterations'], outR['iterations']
-    inlier_ratio = 0
-    f_err = np.abs(np.nanmedian(focals) - f) / f
+    # inlier_ratio = 0
+    f_err = np.abs(focal - f) / f
     return f_err, inlier_ratio
 
 

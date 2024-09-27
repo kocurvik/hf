@@ -7,16 +7,13 @@ from pathlib import Path
 
 import cv2
 import h5py
-import joblib
 import numpy as np
 import torch
-from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 import lightglue
-from lightglue.utils import load_image, rbd
+from lightglue.utils import load_image
 
 from utils.matching import LoFTRMatcher
-from utils.read_write_colmap import cam_to_K, read_model
 
 
 def parse_args():
@@ -347,7 +344,7 @@ def prepare_single(args, subset):
 
 def run_im(args):
     dataset_path = Path(args.dataset_path)
-    dir_list = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x)) and '_' not in x]
+    dir_list = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x)) and 'vertical' in x]
 
     for subset in dir_list:
         prepare_single(args, subset)

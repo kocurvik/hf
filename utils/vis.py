@@ -3,10 +3,9 @@ import os
 
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.ticker import StrMethodFormatter
 from tqdm import tqdm
 
-from utils.data import colors, experiments, iterations_list, get_basenames, pose_err_max
+from dataset_utils.data import colors, experiments, iterations_list, get_basenames, pose_err_max
 
 large_size = 12
 small_size = 10

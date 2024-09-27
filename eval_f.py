@@ -38,7 +38,8 @@ def get_camera_dicts(K_file_path):
     d = {}
     for key, v in K_file.items():
         K = np.array(v)
-        d[key.replace('\\', '/')] = {'model': 'SIMPLE_PINHOLE', 'width': int(2 * K[0, 2]), 'height': int(2 * K[1,2]), 'params': [(K[0, 0] + K[1, 1]) * 0.5, K[0, 2], K[1, 2]]}
+        # d[key.replace('\\', '/')] = {'model': 'SIMPLE_PINHOLE', 'width': int(2 * K[0, 2]), 'height': int(2 * K[1,2]), 'params': [(K[0, 0] + K[1, 1]) * 0.5, K[0, 2], K[1, 2]]}
+        d[key] = {'model': 'SIMPLE_PINHOLE', 'width': int(2 * K[0, 2]), 'height': int(2 * K[1,2]), 'params': [(K[0, 0] + K[1, 1]) * 0.5, K[0, 2], K[1, 2]]}
 
     return d
 
@@ -120,8 +121,10 @@ def get_result_dict_f_only(focal, info, img1, K_dict):
     d['f_err'] = np.abs(mean_gt_focal - focal) / mean_gt_focal
 
     info['inliers'] = []
-    info['inlier_ratio'] = 0.0
-    info['refinements'] = 1
+    if 'inlier_ratio' not in info.keys():
+        info['inlier_ratio'] = 0.0
+    if 'refinements' not in info.keys():
+        info['refinements'] = 1
     d['info'] = info
 
 
@@ -154,7 +157,7 @@ def print_results_summary(results, experiments):
         exp_results = [r for r in results if r['experiment'] == experiment]
         errs = np.array([r['f_err'] for r in exp_results])
         # errs = np.array([r['P_err'] for r in exp_results])
-        errs[np.isnan(errs)] = 180
+        errs[np.isnan(errs)] = 1.0
         res = np.array([np.sum(errs * 100 < t ) / len(errs) for t in range(1, 21)])
         runtime = [r['info']['runtime'] for r in exp_results]
         tab.add_row([experiment, np.median(errs), np.mean(errs),
@@ -179,12 +182,13 @@ def eval_experiment(x):
 
     num_pts = int(experiment[0])
     if iterations is None:
-        iterations = 1000
+        ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
+                       'min_iterations': 10, 'max_iterations': 10000}
+    else:
+        ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
+                       'min_iterations': iterations, 'max_iterations': iterations}
 
-    ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
-                   'min_iterations': iterations, 'max_iterations': iterations}
-
-    # bundle_dict = {'verbose': False, 'max_iterations': 0 if ' + nLO' in experiment else 100}
+    bundle_dict = {'verbose': False, 'max_iterations': 0 if ' LO(0)' in experiment else 100}
     pp = np.array(camera_dicts[img1]['params'][-2:])
 
     # ransac_dict['use_hc'] = '4p3vHCf' in experiment
@@ -199,9 +203,13 @@ def eval_experiment(x):
 
     ransac_dict['lo_iterations'] = find_val('LO', experiment, int, default=25)
 
-    if experiment == '6pf (pairs)':
+    ransac_dict['use_degensac'] = 'degensac' in experiment
+    # if 'degensac' in experiment:
+    #     ransac_dict['lo_iterations'] = 0
+
+    if '6pf (pairs)' in experiment:
         start = perf_counter()
-        out, info = poselib.estimate_shared_focal_relative_pose(x1_1, x2_1, pp, ransac_dict)
+        out, info = poselib.estimate_shared_focal_relative_pose(x1_1, x2_1, pp, ransac_dict, bundle_dict)
         info['runtime'] = 1000 * (perf_counter() - start)
         result_dict = get_result_dict_f_only(out.camera1.focal(), info, img1, camera_dicts)
     elif experiment == '4pH + 4pH + 3vHf + voting (pairs)':
@@ -256,11 +264,18 @@ def eval(args):
     if args.graph:
         basename = f'{basename}-graph'
         iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+        # iterations_list = [10, 20, 50, 100, 200, 500, 1000]
     else:
         iterations_list = [None]
 
-    experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p', '4pH + 4pH + 3vHf + voting (pairs)',
-                   '4pH + 4pH + 3vHf + voting (triplets)', '6pf + p3p', '6pf (pairs)']
+    # experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p', '4pH + 4pH + 3vHf + voting (pairs)',
+    #                '4pH + 4pH + 3vHf + voting (triplets)', '6pf + p3p', '6pf + p3p + degensac', '6pf (pairs)',
+    #                '6pf (pairs) + degensac']
+    experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p',
+                   '6pf + p3p', '6pf + p3p + degensac',
+                   '6pf (pairs)', '6pf (pairs) + degensac']
+    # experiments = ['6pf + p3p', '6pf + p3p + degensac']
+    # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
 
     json_path = os.path.join('results', f'focal_{basename}-{matches_basename}.json')
     print(f'json_path: {json_path}')
@@ -303,13 +318,18 @@ def eval(args):
                 l = np.all(pts[:, 6:9] >= 0.5, axis=1)
                 triplet = pts[l, :6]
 
-                label12 = f'{img1}-{img2}'
-                pair12 = np.array(C_file[label12])
-                pair12 = pair12[pair12[:, -1] > 0.5]
+                try:
+                    label12 = f'{img1}-{img2}'
+                    pair12 = np.array(C_file[label12])
+                    pair12 = pair12[pair12[:, -1] > 0.5]
 
-                label13 = f'{img1}-{img3}'
-                pair13 = np.array(C_file[label13])
-                pair13 = pair13[pair13[:, -1] > 0.5]
+                    label13 = f'{img1}-{img3}'
+                    pair13 = np.array(C_file[label13])
+                    pair13 = pair13[pair13[:, -1] > 0.5]
+                except Exception:
+                    pair12 = pts[:, :4]
+                    pair13 = np.column_stack([pts[:, :2], pts[:, 4:6]])
+
 
                 R_dict_l = {x: R_dict[x] for x in [img1, img2, img3]}
                 T_dict_l = {x: T_dict[x] for x in [img1, img2, img3]}

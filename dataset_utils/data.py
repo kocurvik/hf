@@ -40,3 +40,7 @@ def get_basenames(dataset):
     else:
         raise ValueError
     return basenames
+
+
+def is_image(x):
+    return '.jpg' in x.lower() or '.png' in x.lower() or '.jpeg' in x.lower()

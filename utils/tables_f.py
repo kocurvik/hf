@@ -3,8 +3,7 @@ import os
 
 import numpy as np
 
-from eval import print_results_summary
-from utils.data import basenames_pt, basenames_eth, basenames_cambridge, get_basenames
+from data.data import get_basenames
 
 incdec = [1, 1, -1, -1, -1, 1]
 
