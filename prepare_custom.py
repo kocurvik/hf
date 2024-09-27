@@ -33,9 +33,9 @@ def parse_args():
     return parser.parse_args()
 
 def create_gt_h5(img_dict, calib_dict, out_dir, args):
-    # if os.path.exists(os.path.join(out_dir, 'K.h5'))  and not args.recalc:
-    #     print(f"GT info exists in {out_dir} - not creating it anew")
-    #     return
+    if os.path.exists(os.path.join(out_dir, 'K.h5'))  and not args.recalc:
+        print(f"GT info exists in {out_dir} - not creating it anew")
+        return
 
     print(f"Writing GT info to {out_dir}")
     fK = h5py.File(os.path.join(out_dir, 'K.h5'), 'w')
@@ -230,8 +230,8 @@ def prepare_single(args, scene, camera_list, calib_dict):
         img_dict[camera] = [os.path.join(camera, scene, x) for x in os.listdir(subset_path) if is_image(x)]
 
     create_gt_h5(img_dict, calib_dict, out_dir, args)
-    # extract_features(args.dataset_path, img_dict, out_dir, args)
-    # create_triplets(out_dir, img_dict, args)
+    extract_features(args.dataset_path, img_dict, out_dir, args)
+    create_triplets(out_dir, img_dict, args)
 
 def run_im(args):
     dataset_path = Path(args.dataset_path)
