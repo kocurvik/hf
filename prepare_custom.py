@@ -1,6 +1,7 @@
 import argparse
 import itertools
 import json
+import ntpath
 import os
 import random
 from pathlib import Path
@@ -45,7 +46,7 @@ def create_gt_h5(img_dict, calib_dict, out_dir, args):
         K[0, 2] = calib_dict[camera]['width'] / 2
         K[1, 2] = calib_dict[camera]['height'] / 2
         for img in img_list:
-            fK.create_dataset(img, shape=(3, 3), data=K)
+            fK.create_dataset(ntpath.normpath(img), shape=(3, 3), data=K)
 
 def get_matcher_string(args):
     if args.resize is None:
@@ -85,7 +86,7 @@ def extract_features(dataset_path, img_dict, out_dir, args):
             image_tensor = load_image(img_path).cuda()
     
             kp_tensor = extractor.extract(image_tensor, resize=args.resize)
-            feature_dict[img] = kp_tensor
+            feature_dict[ntpath.normpath(img)] = kp_tensor
 
     torch.save(feature_dict, out_path)
     print("Features saved to: ", out_path)
@@ -112,6 +113,7 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
             output = 0
             while output < args.num_samples:
                 img_triplet = random.sample(image_list, 3)
+                img_triplet = [ntpath.normpath(x) for x in img_triplet]
                 triplet_label = '-'.join(img_triplet)
 
                 if triplet_label in triplet_h5_file:
