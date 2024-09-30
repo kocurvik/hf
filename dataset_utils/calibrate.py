@@ -53,6 +53,7 @@ def calibrate(images):
         mean_error += error
 
     print(f"total error: {mean_error / len(objpoints)} px")
+    print(f"Std dev intrinsics: {stdDeviationsIntrinsics}")
 
     return mtx, dist, width, height
 
@@ -79,6 +80,7 @@ def main(args):
     for dir_path in dirs:
         images = [os.path.join(dir_path, 'Calib', x) for x in os.listdir(os.path.join(dir_path, 'Calib')) if
                   is_image(x)]
+        print(dir_path)
         cam_dict = get_cam_dict(*calibrate(images))
         calib_data[os.path.basename(dir_path)] = cam_dict
         
