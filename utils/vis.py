@@ -45,6 +45,37 @@ def draw_results_focal_auc10(results, experiments, iterations_list, title='', sa
     else:
         plt.show()
 
+def draw_results_focal_cumdist(results, experiments, title='', save=None):
+    cameras = ['IPhoneZBHback', 'IPhoneZBHfront', 'LenovoTabletBack', 'LenovoTabletFront', 'MyFirstBack', 'MyFirstFront', 'OldIphoneBack', 'OldIphoneFront']
+
+    for camera in cameras:
+        cam_results = [x for x in results if camera in x['img1']]
+        plt.figure()
+        for experiment in tqdm(experiments):
+            experiment_results = [x for x in cam_results if x['experiment'] == experiment]
+
+            xs = np.arange(101)
+
+            errs = np.array([r['f_err'] for r in experiment_results])
+            errs[np.isnan(errs)] = 1.0
+            res = np.array([np.sum(errs * 100 < t) / len(errs) for t in xs])
+
+            plt.plot(xs, res, label=experiment)
+
+        # title += f"Error: max(0.5 * (out['R_12_err'] + out['R_13_err']), 0.5 * (out['t_12_err'] + out['t_13_err']))"
+
+        plt.title(title + camera, fontsize=8)
+
+        plt.xlabel('f_err', fontsize=large_size)
+        plt.ylabel('Portion of samples', fontsize=large_size)
+        plt.tick_params(axis='x', which='major', labelsize=small_size)
+        plt.tick_params(axis='y', which='major', labelsize=small_size)
+        plt.legend()
+        if save:
+            plt.savefig(save)
+        else:
+            plt.show()
+
 def draw_results_focal_median(results, experiments, iterations_list, title='', save=None):
     plt.figure()
 

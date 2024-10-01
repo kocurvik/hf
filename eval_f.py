@@ -14,7 +14,8 @@ from prettytable import PrettyTable
 from tqdm import tqdm
 
 from utils.geometry import rotation_angle, angle, get_pose
-from utils.vis import draw_results_focal_auc10, draw_results_pose_auc10, draw_results_focal_median
+from utils.vis import draw_results_focal_auc10, draw_results_pose_auc10, draw_results_focal_median, \
+    draw_results_focal_cumdist
 from utils.voting import focal_voting
 
 
@@ -183,7 +184,7 @@ def eval_experiment(x):
     num_pts = int(experiment[0])
     if iterations is None:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
-                       'min_iterations': 10, 'max_iterations': 10000}
+                       'min_iterations': 10, 'max_iterations': 1000}
     else:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
                        'min_iterations': iterations, 'max_iterations': iterations}
@@ -265,6 +266,7 @@ def eval(args):
         basename = f'{basename}-graph'
         iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
         # iterations_list = [10, 20, 50, 100, 200, 500, 1000]
+        # iterations_list = [10, 20, 50, 100]
     else:
         iterations_list = [None]
 
@@ -283,6 +285,7 @@ def eval(args):
     if args.load:
         with open(json_path, 'r') as f:
             results = json.load(f)
+            results = [x for x in results if 'myfirst' not in x['img1'].lower()]
 
     else:
         C_file = h5py.File(os.path.join(dataset_path, f'{args.feature_file}.h5'))
@@ -375,14 +378,20 @@ def eval(args):
     title = f'Scene: {os.path.basename(dataset_path)} \n'
     title += f'Matches: {matches_basename}\n'
 
+
     fig_save_name = f'{os.path.basename(dataset_path)}_{matches_basename}.png'
 
-    draw_results_focal_auc10(results, experiments, iterations_list, title=title + 'f AUC-0.1',
-                             save=f'figs/auc10f_{fig_save_name}')
-    plt.show()
-    draw_results_focal_median(results, experiments, iterations_list, title=title + 'f median',
-                              save=f'figs/medf_{fig_save_name}')
-    plt.show()
+    if args.graph:
+        draw_results_focal_auc10(results, experiments, iterations_list, title=title + 'f AUC-0.1',
+                                 save=f'figs/graph_auc10f_{fig_save_name}')
+        plt.show()
+        draw_results_focal_median(results, experiments, iterations_list, title=title + 'f median',
+                                  save=f'figs/graph_medf_{fig_save_name}')
+        plt.show()
+    else:
+        # draw_results_focal_cumdist(results, experiments, title=title, save=f'figs/cumdistf_{fig_save_name}')
+        draw_results_focal_cumdist(results, experiments, title=title)
+        plt.show()
 
 if __name__ == '__main__':
     args = parse_args()
