@@ -10,11 +10,11 @@ import h5py
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
-from prettytable import PrettyTable
 from tqdm import tqdm
 
 from utils.geometry import rotation_angle, angle, get_pose
-from utils.vis import draw_results_focal_auc10, draw_results_pose_auc10, draw_results_focal_median, \
+from utils.tables import print_results, print_results_summary
+from utils.vis import draw_results_focal_auc, draw_results_focal_median, \
     draw_results_focal_cumdist
 from utils.voting import focal_voting
 
@@ -132,42 +132,6 @@ def get_result_dict_f_only(focal, info, img1, K_dict):
     return d
 
 
-def print_results(results):
-    tab = PrettyTable(['metric', 'median', 'mean', 'AUC@5', 'AUC@10', 'AUC@20'])
-    tab.align["metric"] = "l"
-    tab.float_format = '0.2'
-    err_names = ['P_12_err', 'P_13_err', 'P_23_err', 'P_err', 'f_err']
-    for err_name in err_names:
-        errs = np.array([r[err_name] for r in results])
-        errs[np.isnan(errs)] = 1.0 if err_name == 'f_err' else 180
-        res = np.array([np.sum(errs * (100 if err_name == 'f_err' else 1.0) < t) / len(errs) for t in range(1, 21)])
-        tab.add_row([err_name, np.median(errs), np.mean(errs), np.mean(res[:5]), np.mean(res[:10]), np.mean(res)])
-
-    for field in ['inlier_ratio', 'iterations', 'runtime', 'refinements']:
-        xs = [r['info'][field] for r in results]
-        tab.add_row([field, np.median(xs), np.mean(xs), '-', '-', '-'])
-        # print(f'{field}: \t median: {np.median(xs):0.02f} \t mean: {np.mean(xs):0.02f}')
-
-    print(tab)
-
-def print_results_summary(results, experiments):
-    tab = PrettyTable(['experiment', 'median', 'mean', 'AUC@5', 'AUC@10', 'AUC@20', 'Mean runtime', 'Med runtime'])
-    tab.float_format = '0.2'
-
-    for experiment in experiments:
-        exp_results = [r for r in results if r['experiment'] == experiment]
-        errs = np.array([r['f_err'] for r in exp_results])
-        # errs = np.array([r['P_err'] for r in exp_results])
-        errs[np.isnan(errs)] = 1.0
-        res = np.array([np.sum(errs * 100 < t ) / len(errs) for t in range(1, 21)])
-        runtime = [r['info']['runtime'] for r in exp_results]
-        tab.add_row([experiment, np.median(errs), np.mean(errs),
-                     100 * np.mean(res[:5]), 100 * np.mean(res[:10]), 100 * np.mean(res),
-                     np.mean(runtime), np.median(runtime)])
-
-    print(tab)
-
-
 def eval_experiment(x):
     torch.set_num_threads(1)
     experiment, iterations, img1, img2, img3, triplet, pair12, pair13, R_dict, T_dict, camera_dicts = x
@@ -184,7 +148,7 @@ def eval_experiment(x):
     num_pts = int(experiment[0])
     if iterations is None:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
-                       'min_iterations': 10, 'max_iterations': 1000}
+                       'min_iterations': 100, 'max_iterations': 100}
     else:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
                        'min_iterations': iterations, 'max_iterations': iterations}
@@ -264,8 +228,8 @@ def eval(args):
     basename = os.path.basename(dataset_path)
     if args.graph:
         basename = f'{basename}-graph'
-        iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
-        # iterations_list = [10, 20, 50, 100, 200, 500, 1000]
+        # iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+        iterations_list = [10, 20, 50, 100, 200, 500, 1000]
         # iterations_list = [10, 20, 50, 100]
     else:
         iterations_list = [None]
@@ -285,7 +249,6 @@ def eval(args):
     if args.load:
         with open(json_path, 'r') as f:
             results = json.load(f)
-            results = [x for x in results if 'myfirst' not in x['img1'].lower()]
 
     else:
         C_file = h5py.File(os.path.join(dataset_path, f'{args.feature_file}.h5'))
@@ -382,8 +345,8 @@ def eval(args):
     fig_save_name = f'{os.path.basename(dataset_path)}_{matches_basename}.png'
 
     if args.graph:
-        draw_results_focal_auc10(results, experiments, iterations_list, title=title + 'f AUC-0.1',
-                                 save=f'figs/graph_auc10f_{fig_save_name}')
+        draw_results_focal_auc(results, experiments, iterations_list, title=title + 'f AUC-0.1',
+                               save=f'figs/graph_auc10f_{fig_save_name}')
         plt.show()
         draw_results_focal_median(results, experiments, iterations_list, title=title + 'f median',
                                   save=f'figs/graph_medf_{fig_save_name}')

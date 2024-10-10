@@ -12,9 +12,10 @@ import numpy as np
 import torch
 from tqdm import tqdm
 import lightglue
-from lightglue.utils import load_image
+from lightglue.utils import load_image, numpy_image_to_torch
 
 from dataset_utils.data import is_image
+from utils.images import load_rotated_image
 from utils.matching import LoFTRMatcher
 
 
@@ -68,7 +69,7 @@ def get_extractor(args):
 
     return extractor
 
-def extract_features(dataset_path, img_dict, out_dir, args):
+def extract_features(dataset_path, img_dict, calib_dict, out_dir, args):
     extractor = get_extractor(args)
     out_path = os.path.join(out_dir, f"{get_matcher_string(args)}.pt")
 
@@ -81,10 +82,18 @@ def extract_features(dataset_path, img_dict, out_dir, args):
     feature_dict = {}
 
     for camera, img_list in img_dict.items():
+        width = calib_dict[camera]['width']
+        height = calib_dict[camera]['height']
         for img in tqdm(img_list):
             img_path = os.path.join(dataset_path, img)
-            image_tensor = load_image(img_path).cuda()
-    
+
+            image_tensor = numpy_image_to_torch(load_rotated_image(img_path)[:, :, ::-1]).cuda()
+            # image_tensor = load_image(img_path).cuda()
+
+            if image_tensor.size(1) != height or image_tensor.size(2) != width:
+                raise ValueError(f"Image {image_tensor.size(2)} x {image_tensor.size(1)}, but expected {width} x {height} "
+                                 f"for {img_path}")
+
             kp_tensor = extractor.extract(image_tensor, resize=args.resize)
             feature_dict[ntpath.normpath(img)] = kp_tensor
 
@@ -232,7 +241,7 @@ def prepare_single(args, scene, camera_list, calib_dict):
         img_dict[camera] = [os.path.join(camera, scene, x) for x in os.listdir(subset_path) if is_image(x)]
 
     create_gt_h5(img_dict, calib_dict, out_dir, args)
-    extract_features(args.dataset_path, img_dict, out_dir, args)
+    extract_features(args.dataset_path, img_dict, calib_dict, out_dir, args)
     create_triplets(out_dir, img_dict, args)
 
 def run_im(args):

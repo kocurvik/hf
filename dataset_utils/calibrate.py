@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 from dataset_utils.data import is_image
+from utils.images import load_rotated_image
 
 
 def parse_args():
@@ -23,23 +24,37 @@ def calibrate(images):
 
     objpoints = []  # 3d point in real world space
     imgpoints = []  # 2d points in image plane.
-    for fname in tqdm(images):
-        # print(fname)
-        img = cv2.imread(fname)
+    shape = None
+
+    for fname in tqdm(images, disable=True):
+        print(fname)
+        img = load_rotated_image(fname)
+
+        print(img.shape)
+        if shape != img.shape and shape is not None:
+            raise ValueError("Bad shape")
+        shape = img.shape
+        cv2.waitKey(1)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # Find the chess board corners
         ret, corners = cv2.findChessboardCorners(gray, (8, 5), None)
         # If found, add object points, image points (after refining them)
         if ret == True:
+            # disp = cv2.drawChessboardCorners(img, (8, 5), corners, True)
+            # cv2.namedWindow('img', cv2.WINDOW_NORMAL)
+            # cv2.imshow("img", disp)
+            # cv2.waitKey(1)
             objpoints.append(objp)
             corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
             imgpoints.append(corners2)
 
-    width = gray.shape[1]
-    height = gray.shape[0]
+    width = shape[1]
+    height = shape[0]
 
     ret, mtx, dist, rvecs, tvecs, stdDeviationsIntrinsics, stdDeviationsExtrinsics, perViewErrors = \
-        cv2.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], None, None, flags=cv2.CALIB_FIX_ASPECT_RATIO)
+        cv2.calibrateCameraExtended(objpoints, imgpoints, gray.shape[::-1], None, None,
+                                    flags=cv2.CALIB_FIX_ASPECT_RATIO | cv2.CALIB_FIX_PRINCIPAL_POINT)
+
 
     # img = cv2.imread(images[0])
     # undistorted_img = cv2.undistort(img, mtx, dist, None, mtx)
@@ -53,7 +68,7 @@ def calibrate(images):
         mean_error += error
 
     print(f"total error: {mean_error / len(objpoints)} px")
-    print(f"Std dev intrinsics: {stdDeviationsIntrinsics}")
+    # print(f"Std dev intrinsics: {stdDeviationsIntrinsics}")
 
     return mtx, dist, width, height
 

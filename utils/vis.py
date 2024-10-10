@@ -1,4 +1,5 @@
 import json
+import ntpath
 import os
 
 import numpy as np
@@ -10,7 +11,7 @@ from dataset_utils.data import colors, experiments, iterations_list, get_basenam
 large_size = 12
 small_size = 10
 
-def draw_results_focal_auc10(results, experiments, iterations_list, title='', save=None):
+def draw_results_focal_auc(results, experiments, iterations_list, title='', save=None):
     plt.figure()
 
     for experiment in tqdm(experiments):
@@ -24,10 +25,10 @@ def draw_results_focal_auc10(results, experiments, iterations_list, title='', sa
             mean_runtime = np.mean([x['info']['runtime'] for x in iter_results])
             errs = np.array([r['f_err'] for r in iter_results])
             errs[np.isnan(errs)] = 1.0
-            AUC10 = np.mean(np.array([np.sum(errs * 100 < t) / len(errs) for t in range(1, 11)]))
+            AUC20 = np.mean(np.array([np.sum(errs * 100 < t) / len(errs) for t in range(1, 11)]))
 
             xs.append(mean_runtime)
-            ys.append(AUC10)
+            ys.append(AUC20)
 
         plt.semilogx(xs, ys, label=experiment, marker='*')
 
@@ -46,7 +47,9 @@ def draw_results_focal_auc10(results, experiments, iterations_list, title='', sa
         plt.show()
 
 def draw_results_focal_cumdist(results, experiments, title='', save=None):
-    cameras = ['IPhoneZBHback', 'IPhoneZBHfront', 'LenovoTabletBack', 'LenovoTabletFront', 'MyFirstBack', 'MyFirstFront', 'OldIphoneBack', 'OldIphoneFront']
+    # cameras = ['IPhoneZBHback', 'IPhoneZBHfront', 'LenovoTabletBack', 'LenovoTabletFront', 'OldIphoneBack', 'OldIphoneFront', 'SamsungBack', 'SamsungFront', 'SamsungGlossyBack', 'SamsungGlossyFront', 'MotoFront', 'MotoBack']
+
+    cameras = np.unique([ntpath.basename(x['img1'].split(ntpath.sep)[0]) for x in results])
 
     for camera in cameras:
         cam_results = [x for x in results if camera in x['img1']]
@@ -198,11 +201,11 @@ def generate_graphs(dataset, results_type, all=True):
                 results.extend([x for x in json.load(f) if x['experiment'] in experiments])
             else:
                 results = [x for x in json.load(f) if x['experiment'] in experiments]
-                draw_results_focal_auc10(results, experiments, iterations_list, f'{dataset}_{basename}_{results_type}')
+                draw_results_focal_auc(results, experiments, iterations_list, f'{dataset}_{basename}_{results_type}')
 
     if all:
         title = f'{dataset}_{results_type}'
-        draw_results_focal_auc10(results, experiments, iterations_list, title)
+        draw_results_focal_auc(results, experiments, iterations_list, title)
         draw_results_focal_median(results, experiments, iterations_list, title)
     # draw_results_pose_portion(results, experiments, iterations_list, title)
 
