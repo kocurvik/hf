@@ -120,12 +120,16 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
     with tqdm(total=args.num_samples * len(img_dict)) as pbar:
         for camera, image_list in img_dict.items():
             output = 0
+            failures = 0
             while output < args.num_samples:
+                if failures > 100:
+                    print(f"Failed to find enough triplets for camera: {camera}, moving on with {output} triplets")
                 img_triplet = random.sample(image_list, 3)
                 img_triplet = [ntpath.normpath(x) for x in img_triplet]
                 triplet_label = '-'.join(img_triplet)
 
                 if triplet_label in triplet_h5_file:
+                    failures += 1
                     continue
 
                 img_1, img_2, img_3 = img_triplet
@@ -175,6 +179,7 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
                     out_triplet_array[i] = np.array([*point_1, *point_2, *point_3, score, score_13, score_23])
 
                 if len(idxs) < 10:
+                    failures += 1
                     continue
 
                 triplet_h5_file.create_dataset(triplet_label, shape=out_triplet_array.shape, data=out_triplet_array)
@@ -224,6 +229,7 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
                 if args.num_samples is not None:
                     pbar.update(1)
                     output += 1
+                    failures = 0
 
     triples_txt_path = os.path.join(out_dir, f'triplets-{get_matcher_string(args)}-LG.txt')
     print("Writing list of triplets to: ", triples_txt_path)
