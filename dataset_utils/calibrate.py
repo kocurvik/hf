@@ -34,11 +34,9 @@ def calibrate(images):
         if shape != img.shape and shape is not None:
             raise ValueError("Bad shape")
         shape = img.shape
-        cv2.waitKey(1)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # Find the chess board corners
+
         ret, corners = cv2.findChessboardCorners(gray, (8, 5), None)
-        # If found, add object points, image points (after refining them)
         if ret == True:
             # disp = cv2.drawChessboardCorners(img, (8, 5), corners, True)
             # cv2.namedWindow('img', cv2.WINDOW_NORMAL)
