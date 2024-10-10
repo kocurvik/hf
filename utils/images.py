@@ -2,7 +2,7 @@ import cv2
 from PIL import Image
 
 import os
-import piexif
+# import piexif
 
 
 from dataset_utils.data import is_image
