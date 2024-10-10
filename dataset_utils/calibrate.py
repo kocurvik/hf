@@ -26,7 +26,7 @@ def calibrate(images):
     imgpoints = []  # 2d points in image plane.
     shape = None
 
-    for fname in tqdm(images, disable=True):
+    for fname in tqdm(images):
         print(fname)
         img = load_rotated_image(fname)
 
