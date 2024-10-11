@@ -228,8 +228,8 @@ def eval(args):
     basename = os.path.basename(dataset_path)
     if args.graph:
         basename = f'{basename}-graph'
-        # iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
-        iterations_list = [10, 20, 50, 100, 200, 500, 1000]
+        iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+        # iterations_list = [10, 20, 50, 100, 200, 500, 1000]
         # iterations_list = [10, 20, 50, 100]
     else:
         iterations_list = [None]
@@ -249,6 +249,7 @@ def eval(args):
     if args.load:
         with open(json_path, 'r') as f:
             results = json.load(f)
+            triplets = get_triplets(os.path.join(dataset_path, f'{args.feature_file}.txt'))
 
     else:
         C_file = h5py.File(os.path.join(dataset_path, f'{args.feature_file}.h5'))
@@ -339,7 +340,7 @@ def eval(args):
             json.dump(results, f, indent=4)
 
     title = f'Scene: {os.path.basename(dataset_path)} \n'
-    title += f'Matches: {matches_basename}\n'
+    title += f'Matches: {matches_basename} ({len(triplets)} samples)\n'
 
 
     fig_save_name = f'{os.path.basename(dataset_path)}_{matches_basename}.png'
