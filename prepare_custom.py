@@ -124,6 +124,7 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
             while output < args.num_samples:
                 if failures > 100:
                     print(f"Failed to find enough triplets for camera: {camera}, moving on with {output} triplets")
+                    break
                 img_triplet = random.sample(image_list, 3)
                 img_triplet = [ntpath.normpath(x) for x in img_triplet]
                 triplet_label = '-'.join(img_triplet)
