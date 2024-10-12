@@ -298,6 +298,10 @@ def create_triplets_loftr(out_dir, img_dict, calib_dict, args):
                     if len(idx_13) > 0:
                         idxs.append((idx_12, idx_13[0]))
 
+                if len(idxs) < 10:
+                    failures += 1
+                    continue
+
                 out_array = np.empty([len(idxs), 9])
 
                 for i, x in enumerate(idxs):
