@@ -239,7 +239,7 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
 
 
 def read_loftr_image(img, camera_dict, dataset_path):
-    img_path = os.path.join(Path(dataset_path), Path(img))
+    img_path = os.path.join(dataset_path, img.replace(ntpath.sep, os.path.sep))
     image_array = load_rotated_image(img_path)
 
     height = camera_dict['height']
