@@ -237,6 +237,104 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
     with open(triples_txt_path, 'w') as f:
         f.writelines(line + '\n' for line in triplets)
 
+
+def read_loftr_image(img, camera_dict, dataset_path):
+    img_path = os.path.join(dataset_path, img)
+    image_array = load_rotated_image(img_path)
+
+    height = camera_dict['height']
+    width = camera_dict['width']
+
+    if image_array.shape[0] != height or image_array.shape[1] != width:
+        raise ValueError(f"Wrong image dimensions for {image_array}. Expected {width}x{height} got {image_array.shape[1]}x{image_array.shape[0]}")
+
+    return image_array
+
+
+def create_triplets_loftr(out_dir, img_dict, calib_dict, args):
+    np.random.seed(args.seed)
+    random.seed(args.seed)
+
+    matcher = LoFTRMatcher(max_dim=args.resize, device='cuda')
+    args.max_features = 0
+
+    triplet_h5_path_str = f'triplets-{get_matcher_string(args)}.h5'
+    triplet_h5_path = os.path.join(out_dir, triplet_h5_path_str)
+    triplet_h5_file = h5py.File(triplet_h5_path, 'w')
+    print("Writing triplet matches to: ", triplet_h5_path)
+
+    triplets = []
+
+    with tqdm(total=args.num_samples * len(img_dict)) as pbar:
+        for camera, image_list in img_dict.items():
+            output = 0
+            failures = 0
+            while output < args.num_samples:
+                if failures > 100:
+                    print(f"Failed to find enough triplets for camera: {camera}, moving on with {output} triplets")
+                    break
+                img_triplet = random.sample(image_list, 3)
+                img_triplet = [ntpath.normpath(x) for x in img_triplet]
+                triplet_label = '-'.join(img_triplet)
+
+                if triplet_label in triplet_h5_file:
+                    failures += 1
+                    continue
+
+                img_1, img_2, img_3 = img_triplet
+
+                img_array_1 = read_loftr_image(img_1, calib_dict[camera], args.dataset_path)
+                img_array_2 = read_loftr_image(img_2, calib_dict[camera], args.dataset_path)
+                img_array_3 = read_loftr_image(img_3, calib_dict[camera], args.dataset_path)
+
+                scores_12, kp_12_1, kp_12_2 = matcher.match(img_array_1, img_array_2)
+                scores_13, kp_13_1, kp_13_3 = matcher.match(img_array_1, img_array_3)
+
+                idxs = []
+
+                for idx_12, kp in enumerate(kp_12_1):
+                    idx_13 = np.where(np.all(kp_13_1 == kp, axis=1))[0]
+
+                    if len(idx_13) > 0:
+                        idxs.append((idx_12, idx_13[0]))
+
+                out_array = np.empty([len(idxs), 9])
+
+                for i, x in enumerate(idxs):
+                    idx_12, idx_13 = x
+                    point_1 = kp_12_1[idx_12]
+                    point_2 = kp_12_2[idx_12]
+                    point_3 = kp_13_3[idx_13]
+                    score_12 = scores_12[idx_12]
+                    score_13 = scores_13[idx_13]
+
+                    out_array[i] = np.array([*point_1, *point_2, *point_3, score_12, score_13, np.maximum(score_12, score_13)])
+
+                triplet_h5_file.create_dataset(triplet_label, shape=out_array.shape, data=out_array)
+                triplets.append(triplet_label.replace('-', ' '))
+
+                # add pairs if not present already
+                pair_label = f'{img_1}-{img_2}'
+                if not pair_label in triplet_h5_file:
+                    out_array = np.column_stack([kp_12_1, kp_12_2, scores_12])
+                    triplet_h5_file.create_dataset(pair_label, shape=out_array.shape, data=out_array)
+
+                pair_label = f'{img_1}-{img_3}'
+                if not pair_label in triplet_h5_file:
+                    out_array = np.column_stack([kp_13_1, kp_13_3, scores_13])
+                    triplet_h5_file.create_dataset(pair_label, shape=out_array.shape, data=out_array)
+
+                if args.num_samples is not None:
+                    pbar.update(1)
+                    output += 1
+                    failures = 0
+
+    triples_txt_path = os.path.join(out_dir, f'triplets-{get_matcher_string(args)}.txt')
+    print("Writing list of triplets to: ", triples_txt_path)
+    with open(triples_txt_path, 'w') as f:
+        f.writelines(line + '\n' for line in triplets)
+
+
 def prepare_single(args, scene, camera_list, calib_dict):
     out_dir = os.path.join(args.out_path, scene)
     if not os.path.exists(out_dir):
@@ -248,8 +346,11 @@ def prepare_single(args, scene, camera_list, calib_dict):
         img_dict[camera] = [os.path.join(camera, scene, x) for x in os.listdir(subset_path) if is_image(x)]
 
     create_gt_h5(img_dict, calib_dict, out_dir, args)
-    extract_features(args.dataset_path, img_dict, calib_dict, out_dir, args)
-    create_triplets(out_dir, img_dict, args)
+    if 'loftr' in args.features:
+        create_triplets_loftr(out_dir, img_dict, calib_dict, args)
+    else:
+        extract_features(args.dataset_path, img_dict, calib_dict, out_dir, args)
+        create_triplets(out_dir, img_dict, args)
 
 def run_im(args):
     dataset_path = Path(args.dataset_path)

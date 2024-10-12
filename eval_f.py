@@ -282,7 +282,7 @@ def eval(args):
                 label = f"{img1}-{img2}-{img3}"
 
                 pts = np.array(C_file[label])
-                l = np.all(pts[:, 6:9] >= 0.5, axis=1)
+                l = np.all(pts[:, 6:] >= 0.5, axis=1)
                 triplet = pts[l, :6]
 
                 try:
