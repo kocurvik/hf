@@ -29,6 +29,9 @@ def parse_args():
     parser.add_argument('-mf', '--max_features', type=int, default=2048)
     parser.add_argument('-r', '--resize', type=int, default=None)
     parser.add_argument('--recalc', action='store_true', default=False)
+    parser.add_argument('-d', '--debug', action='store_true', default=False)
+    parser.add_argument('--scene', type=str, default=None)
+
     parser.add_argument('out_path')
     parser.add_argument('dataset_path')
 
@@ -94,14 +97,37 @@ def extract_features(dataset_path, img_dict, calib_dict, out_dir, args):
                 raise ValueError(f"Image {image_tensor.size(2)} x {image_tensor.size(1)}, but expected {width} x {height} "
                                  f"for {img_path}")
 
-            kp_tensor = extractor.extract(image_tensor, resize=args.resize)
-            feature_dict[ntpath.normpath(img)] = kp_tensor
+            for i in range(4):
+                kp_tensor = extractor.extract(torch.rot90(image_tensor, i, dims=[1, 2]), resize=args.resize)
+                feature_dict[f"{ntpath.normpath(img)}-{i}"] = kp_tensor
 
     torch.save(feature_dict, out_path)
     print("Features saved to: ", out_path)
 
 
-def create_triplets(out_dir, img_dict, args, img_list=None):
+def rot_f(width, height, k):
+    k = k % 4
+
+    if k == 0:
+        def f(p):
+            return np.array([p[0], p[1]])
+
+    elif k == 1:
+        def f(p):
+            return np.array([width - p[1] - 1, p[0]])
+
+    elif k == 2:
+        def f(p):
+            return np.array([width - p[0] - 1, height - p[1] - 1])
+
+    elif k == 3:
+        def f(p):
+            return np.array([p[1], height - p[0] - 1])
+
+    return f
+
+
+def create_triplets(out_dir, img_dict, calib_dict, args, img_list=None):
     np.random.seed(args.seed)
     random.seed(args.seed)
     output = 0
@@ -119,6 +145,7 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
 
     with tqdm(total=args.num_samples * len(img_dict)) as pbar:
         for camera, image_list in img_dict.items():
+            width, height = calib_dict[camera]['width'], calib_dict[camera]['height']
             output = 0
             failures = 0
             while output < args.num_samples:
@@ -135,20 +162,44 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
 
                 img_1, img_2, img_3 = img_triplet
 
-                feats_1 = features[img_1]
-                feats_2 = features[img_2]
-                feats_3 = features[img_3]
+                feats_1 = features[f"{img_1}-0"]
 
-                out_12 = matcher({'image0': feats_1, 'image1': feats_2})
-                out_13 = matcher({'image0': feats_1, 'image1': feats_3})
+                # f = feats_1['keypoints'][0, :].detach().cpu().numpy()
+                # print(f"x: {np.min(f[0, :])}-{np.max(f[0, :])}")
+                # print(f"y: {np.min(f[1, :])}-{np.max(f[1, :])}")
+
+                feats_2 = [None] * 4
+                scores_12 = [None] * 4
+                matches_12 = [None] * 4
+                for k in range(4):
+                    feats_2[k] = features[f"{img_2}-{k}"]
+                    out_12 = matcher({'image0': feats_1, 'image1': feats_2[k]})
+                    matches_12[k] = out_12['matches0'][0].detach().cpu().numpy()
+                    scores_12[k] = out_12['matching_scores0'][0].detach().cpu().numpy()
+                best_k_2 = np.argmax([np.sum(s > 0.5) for s in scores_12])
+
+                feats_2 = feats_2[best_k_2]
+                matches_12 = matches_12[best_k_2]
+                scores_12 = scores_12[best_k_2]
+                ft2 = rot_f(width, height, best_k_2)
+
+                feats_3 = [None] * 4
+                scores_13 = [None] * 4
+                matches_13 = [None] * 4
+                for k in range(4):
+                    feats_3[k] = features[f"{img_3}-{k}"]
+                    out_13 = matcher({'image0': feats_1, 'image1': feats_3[k]})
+                    matches_13[k] = out_13['matches0'][0].detach().cpu().numpy()
+                    scores_13[k] = out_13['matching_scores0'][0].detach().cpu().numpy()
+                best_k_3 = np.argmax([np.sum(s > 0.5) for s in scores_13])
+
+                feats_3 = feats_3[best_k_3]
+                matches_13 = matches_13[best_k_3]
+                scores_13 = scores_13[best_k_3]
+                ft3 = rot_f(width, height, best_k_3)
+
                 out_23 = matcher({'image0': feats_2, 'image1': feats_3})
-
-                scores_12 = out_12['matching_scores0'][0].detach().cpu().numpy()
-                scores_13 = out_13['matching_scores0'][0].detach().cpu().numpy()
                 scores_23 = out_23['matching_scores0'][0].detach().cpu().numpy()
-
-                matches_12 = out_12['matches0'][0].detach().cpu().numpy()
-                matches_13 = out_13['matches0'][0].detach().cpu().numpy()
                 matches_23 = out_23['matches0'][0].detach().cpu().numpy()
 
                 # TRIPLETS
@@ -172,12 +223,29 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
                 for i, x in enumerate(idxs):
                     idx_1, idx_2, idx_3 = x
                     point_1 = feats_1['keypoints'][0, idx_1].detach().cpu().numpy()
-                    point_2 = feats_2['keypoints'][0, idx_2].detach().cpu().numpy()
-                    point_3 = feats_3['keypoints'][0, idx_3].detach().cpu().numpy()
+                    point_2 = ft2(feats_2['keypoints'][0, idx_2].detach().cpu().numpy())
+                    point_3 = ft3(feats_3['keypoints'][0, idx_3].detach().cpu().numpy())
                     score = scores_12[idx_1]
                     score_13 = scores_13[idx_1]
                     score_23 = scores_23[idx_2]
                     out_triplet_array[i] = np.array([*point_1, *point_2, *point_3, score, score_13, score_23])
+
+                if args.debug:
+                    kp1 = out_triplet_array[:, :2]
+                    kp2 = out_triplet_array[:, 2:4]
+                    kp3 = out_triplet_array[:, 4:6]
+                    img1 = load_rotated_image(os.path.join(args.dataset_path, img_1.replace(ntpath.sep, os.path.sep)))
+                    img2 = load_rotated_image(os.path.join(args.dataset_path, img_2.replace(ntpath.sep, os.path.sep)))
+                    img3 = load_rotated_image(os.path.join(args.dataset_path, img_3.replace(ntpath.sep, os.path.sep)))
+                    joint_img = np.concatenate([img1, img2, img3], axis=1)
+                    joint_img = np.concatenate([joint_img, joint_img], axis=0)
+                    for i in range(len(kp1)):
+                        joint_img = cv2.line(joint_img, (int(kp1[i][0]), int(kp1[i][1])), (int(kp2[i][0]) + img1.shape[1], int(kp2[i][1])), (0, 255, 0), thickness=3)
+                        joint_img = cv2.line(joint_img, (int(kp2[i][0]) + img1.shape[1], int(kp2[i][1])), (int(kp3[i][0]) + img1.shape[1] + img2.shape[1], int(kp3[i][1])), (0, 255, 0), thickness=3)
+                    cv2.namedWindow("Joint img", cv2.WINDOW_NORMAL)
+                    cv2.imshow("Joint img", joint_img)
+                    cv2.waitKey(0)
+
 
                 if len(idxs) < 10:
                     failures += 1
@@ -195,7 +263,7 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
                         if idx_2 == -1:
                             continue
                         point_1 = feats_1['keypoints'][0, idx_1].detach().cpu().numpy()
-                        point_2 = feats_2['keypoints'][0, idx_2].detach().cpu().numpy()
+                        point_2 = ft2(feats_2['keypoints'][0, idx_2].detach().cpu().numpy())
                         score = scores_12[idx_1]
                         out_array.append(np.array([*point_1, *point_2, score]))
                     out_array = np.array(out_array)
@@ -208,7 +276,7 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
                         if idx_2 == -1:
                             continue
                         point_1 = feats_1['keypoints'][0, idx_1].detach().cpu().numpy()
-                        point_2 = feats_3['keypoints'][0, idx_2].detach().cpu().numpy()
+                        point_2 = ft3(feats_3['keypoints'][0, idx_2].detach().cpu().numpy())
                         score = scores_13[idx_1]
                         out_array.append(np.array([*point_1, *point_2, score]))
                     out_array = np.array(out_array)
@@ -220,8 +288,8 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
                     for idx_1, idx_2 in enumerate(matches_23):
                         if idx_2 == -1:
                             continue
-                        point_1 = feats_2['keypoints'][0, idx_1].detach().cpu().numpy()
-                        point_2 = feats_3['keypoints'][0, idx_2].detach().cpu().numpy()
+                        point_1 = ft2(feats_2['keypoints'][0, idx_1].detach().cpu().numpy())
+                        point_2 = ft3(feats_3['keypoints'][0, idx_2].detach().cpu().numpy())
                         score = scores_23[idx_1]
                         out_array.append(np.array([*point_1, *point_2, score]))
                     out_array = np.array(out_array)
@@ -238,107 +306,6 @@ def create_triplets(out_dir, img_dict, args, img_list=None):
         f.writelines(line + '\n' for line in triplets)
 
 
-def read_loftr_image(img, camera_dict, dataset_path):
-    img_path = os.path.join(dataset_path, img.replace(ntpath.sep, os.path.sep))
-    image_array = load_rotated_image(img_path)
-
-    height = camera_dict['height']
-    width = camera_dict['width']
-
-    if image_array.shape[0] != height or image_array.shape[1] != width:
-        raise ValueError(f"Wrong image dimensions for {image_array}. Expected {width}x{height} got {image_array.shape[1]}x{image_array.shape[0]}")
-
-    return image_array
-
-
-def create_triplets_loftr(out_dir, img_dict, calib_dict, args):
-    np.random.seed(args.seed)
-    random.seed(args.seed)
-
-    matcher = LoFTRMatcher(max_dim=args.resize, device='cuda')
-    args.max_features = 0
-
-    triplet_h5_path_str = f'triplets-{get_matcher_string(args)}.h5'
-    triplet_h5_path = os.path.join(out_dir, triplet_h5_path_str)
-    triplet_h5_file = h5py.File(triplet_h5_path, 'w')
-    print("Writing triplet matches to: ", triplet_h5_path)
-
-    triplets = []
-
-    with tqdm(total=args.num_samples * len(img_dict)) as pbar:
-        for camera, image_list in img_dict.items():
-            output = 0
-            failures = 0
-            while output < args.num_samples:
-                if failures > 100:
-                    print(f"Failed to find enough triplets for camera: {camera}, moving on with {output} triplets")
-                    break
-                img_triplet = random.sample(image_list, 3)
-                img_triplet = [ntpath.normpath(x) for x in img_triplet]
-                triplet_label = '-'.join(img_triplet)
-
-                if triplet_label in triplet_h5_file:
-                    failures += 1
-                    continue
-
-                img_1, img_2, img_3 = img_triplet
-
-                img_array_1 = read_loftr_image(img_1, calib_dict[camera], args.dataset_path)
-                img_array_2 = read_loftr_image(img_2, calib_dict[camera], args.dataset_path)
-                img_array_3 = read_loftr_image(img_3, calib_dict[camera], args.dataset_path)
-
-                scores_12, kp_12_1, kp_12_2 = matcher.match(img_array_1, img_array_2)
-                scores_13, kp_13_1, kp_13_3 = matcher.match(img_array_1, img_array_3)
-
-                idxs = []
-
-                for idx_12, kp in enumerate(kp_12_1):
-                    idx_13 = np.where(np.all(kp_13_1 == kp, axis=1))[0]
-
-                    if len(idx_13) > 0:
-                        idxs.append((idx_12, idx_13[0]))
-
-                if len(idxs) < 10:
-                    failures += 1
-                    continue
-
-                out_array = np.empty([len(idxs), 9])
-
-                for i, x in enumerate(idxs):
-                    idx_12, idx_13 = x
-                    point_1 = kp_12_1[idx_12]
-                    point_2 = kp_12_2[idx_12]
-                    point_3 = kp_13_3[idx_13]
-                    score_12 = scores_12[idx_12]
-                    score_13 = scores_13[idx_13]
-
-                    out_array[i] = np.array([*point_1, *point_2, *point_3, score_12, score_13, np.maximum(score_12, score_13)])
-
-                triplet_h5_file.create_dataset(triplet_label, shape=out_array.shape, data=out_array)
-                triplets.append(triplet_label.replace('-', ' '))
-
-                # add pairs if not present already
-                pair_label = f'{img_1}-{img_2}'
-                if not pair_label in triplet_h5_file:
-                    out_array = np.column_stack([kp_12_1, kp_12_2, scores_12])
-                    triplet_h5_file.create_dataset(pair_label, shape=out_array.shape, data=out_array)
-
-                pair_label = f'{img_1}-{img_3}'
-                if not pair_label in triplet_h5_file:
-                    out_array = np.column_stack([kp_13_1, kp_13_3, scores_13])
-                    triplet_h5_file.create_dataset(pair_label, shape=out_array.shape, data=out_array)
-
-                if args.num_samples is not None:
-                    pbar.update(1)
-                    output += 1
-                    failures = 0
-
-    triples_txt_path = os.path.join(out_dir, f'triplets-{get_matcher_string(args)}.txt')
-    print("Writing list of triplets to: ", triples_txt_path)
-    with open(triples_txt_path, 'w') as f:
-        f.writelines(line + '\n' for line in triplets)
-
-
 def prepare_single(args, scene, camera_list, calib_dict):
     out_dir = os.path.join(args.out_path, scene)
     if not os.path.exists(out_dir):
@@ -350,11 +317,11 @@ def prepare_single(args, scene, camera_list, calib_dict):
         img_dict[camera] = [os.path.join(camera, scene, x) for x in os.listdir(subset_path) if is_image(x)]
 
     create_gt_h5(img_dict, calib_dict, out_dir, args)
-    if 'loftr' in args.features:
-        create_triplets_loftr(out_dir, img_dict, calib_dict, args)
-    else:
-        extract_features(args.dataset_path, img_dict, calib_dict, out_dir, args)
-        create_triplets(out_dir, img_dict, args)
+    # if 'loftr' in args.features:
+    #     create_triplets_loftr(out_dir, img_dict, calib_dict, args)
+    # else:
+    extract_features(args.dataset_path, img_dict, calib_dict, out_dir, args)
+    create_triplets(out_dir, img_dict, calib_dict, args)
 
 def run_im(args):
     dataset_path = Path(args.dataset_path)
@@ -362,7 +329,11 @@ def run_im(args):
 
     camera_list = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x))]
     for camera in camera_list:
-        scenes = [x for x in os.listdir(os.path.join(dataset_path, camera)) if os.path.isdir(os.path.join(dataset_path, camera, x))]
+        if args.scene is None:
+            scenes = [x for x in os.listdir(os.path.join(dataset_path, camera)) if os.path.isdir(os.path.join(dataset_path, camera, x))]
+        else:
+            scenes = [args.scene] if args.scene in os.listdir(os.path.join(dataset_path, camera)) else []
+        # scenes = [x for x in ['Floor'] if os.path.isdir(os.path.join(dataset_path, camera, x))]
         for scene in scenes:
             if scene in scene_dict.keys():
                 scene_dict[scene].append(camera)
