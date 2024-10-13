@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument('-l', '--load', action='store_true', default=False)
     parser.add_argument('-g', '--graph', action='store_true', default=False)
     parser.add_argument('-a', '--append', action='store_true', default=False)
+    parser.add_argument('-is', '--ignore_score', action='store_true', default=False)
     parser.add_argument('--all', action='store_true', default=False)
     parser.add_argument('feature_file')
     parser.add_argument('dataset_path')
@@ -243,7 +244,8 @@ def eval(args):
     # experiments = ['6pf + p3p', '6pf + p3p + degensac']
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
 
-    json_path = os.path.join('results', f'focal_{basename}-{matches_basename}.json')
+
+    json_path = os.path.join('results', f'focal_{basename}-{matches_basename}{"-is" if args.ignore_score else ""}.json')
     print(f'json_path: {json_path}')
 
     if args.load:
@@ -282,17 +284,22 @@ def eval(args):
                 label = f"{img1}-{img2}-{img3}"
 
                 pts = np.array(C_file[label])
-                l = np.all(pts[:, 6:] >= 0.5, axis=1)
-                triplet = pts[l, :6]
+                if not args.ignore_score:
+                    l = np.all(pts[:, 6:] >= 0.5, axis=1)
+                    triplet = pts[l, :6]
+                else:
+                    triplet = pts[:, :6]
 
                 try:
                     label12 = f'{img1}-{img2}'
                     pair12 = np.array(C_file[label12])
-                    pair12 = pair12[pair12[:, -1] > 0.5]
+                    if not args.ignore_score:
+                        pair12 = pair12[pair12[:, -1] > 0.5]
 
                     label13 = f'{img1}-{img3}'
                     pair13 = np.array(C_file[label13])
-                    pair13 = pair13[pair13[:, -1] > 0.5]
+                    if not args.ignore_score:
+                        pair13 = pair13[pair13[:, -1] > 0.5]
                 except Exception:
                     pair12 = pts[:, :4]
                     pair13 = np.column_stack([pts[:, :2], pts[:, 4:6]])
