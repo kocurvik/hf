@@ -9,11 +9,11 @@ def print_results(results):
     tab = PrettyTable(['metric', 'median', 'mean', 'AUC@5', 'AUC@10', 'AUC@20'])
     tab.align["metric"] = "l"
     tab.float_format = '0.2'
-    err_names = ['P_12_err', 'P_13_err', 'P_23_err', 'P_err', 'f_err']
+    err_names = ['f1_err', 'f2_err', 'f3_err']
     for err_name in err_names:
         errs = np.array([r[err_name] for r in results])
         errs[np.isnan(errs)] = 1.0 if err_name == 'f_err' else 180
-        res = np.array([np.sum(errs * (100 if err_name == 'f_err' else 1.0) < t) / len(errs) for t in range(1, 21)])
+        res = np.array([np.sum(errs * 100.0 < t) / len(errs) for t in range(1, 21)])
         tab.add_row([err_name, np.median(errs), np.mean(errs), np.mean(res[:5]), np.mean(res[:10]), np.mean(res)])
 
     for field in ['inlier_ratio', 'iterations', 'runtime', 'refinements']:
@@ -30,7 +30,7 @@ def print_results_summary(results, experiments):
 
     for experiment in experiments:
         exp_results = [r for r in results if r['experiment'] == experiment]
-        errs = np.array([r['f_err'] for r in exp_results])
+        errs = np.array([r['f1_err'] for r in exp_results])
         # errs = np.array([r['P_err'] for r in exp_results])
         errs[np.isnan(errs)] = 1.0
         res = np.array([np.sum(errs * 100 < t ) / len(errs) for t in range(1, 21)])

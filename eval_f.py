@@ -23,6 +23,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--first', type=int, default=None)
     parser.add_argument('-nw', '--num_workers', type=int, default=1)
+    parser.add_argument('-c', '--case', type=int, default=1)
     parser.add_argument('-l', '--load', action='store_true', default=False)
     parser.add_argument('-g', '--graph', action='store_true', default=False)
     parser.add_argument('-a', '--append', action='store_true', default=False)
@@ -78,23 +79,25 @@ def get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, K_dict):
     d['P_err'] = max([v for k, v in d.items()])
 
     gt_focal_1 = K_dict[img1]['params'][0]
-    gt_focal_2 = K_dict[img1]['params'][0]
-    gt_focal_3 = K_dict[img1]['params'][0]
+    gt_focal_2 = K_dict[img2]['params'][0]
+    gt_focal_3 = K_dict[img3]['params'][0]
 
-    focal = out.camera.focal()
+    d['f1_est'] = out.camera1.focal()
+    d['f2_est'] = out.camera2.focal()
+    d['f3_est'] = out.camera3.focal()
 
-    d['f1_err'] = np.abs(gt_focal_1 - focal) / gt_focal_1
-    d['f2_err'] = np.abs(gt_focal_2 - focal) / gt_focal_2
-    d['f3_err'] = np.abs(gt_focal_3 - focal) / gt_focal_3
+    d['f1_err'] = np.abs(gt_focal_1 - d['f1_est']) / gt_focal_1
+    d['f2_err'] = np.abs(gt_focal_2 - d['f2_est']) / gt_focal_2
+    d['f3_err'] = np.abs(gt_focal_3 - d['f3_est']) / gt_focal_3
 
-    mean_gt_focal = (gt_focal_1 + gt_focal_2 + gt_focal_3) / 3
-    d['f_err'] = np.abs(mean_gt_focal - focal) / mean_gt_focal
+    # mean_gt_focal = (gt_focal_1 + gt_focal_2 + gt_focal_3) / 3
+    # d['f_err'] = np.abs(mean_gt_focal - focal) / mean_gt_focal
 
     info['inliers'] = []
     d['info'] = info
     return d
 
-def get_result_dict_f_only(focal, info, img1, K_dict):
+def get_result_dict_f_only(f1, f2, f3, info, img1, img2, img3, K_dict):
     d = {}
     d['R_12_err'] = 180
     d['R_13_err'] = 180
@@ -112,15 +115,15 @@ def get_result_dict_f_only(focal, info, img1, K_dict):
     d['P_err'] = max([v for k, v in d.items()])
 
     gt_focal_1 = K_dict[img1]['params'][0]
-    gt_focal_2 = K_dict[img1]['params'][0]
-    gt_focal_3 = K_dict[img1]['params'][0]
+    gt_focal_2 = K_dict[img2]['params'][0]
+    gt_focal_3 = K_dict[img3]['params'][0]
 
-    d['f1_err'] = np.abs(gt_focal_1 - focal) / gt_focal_1
-    d['f2_err'] = np.abs(gt_focal_2 - focal) / gt_focal_2
-    d['f3_err'] = np.abs(gt_focal_3 - focal) / gt_focal_3
+    d['f1_err'] = np.abs(gt_focal_1 - f1) / gt_focal_1
+    d['f2_err'] = np.abs(gt_focal_2 - f2) / gt_focal_2
+    d['f3_err'] = np.abs(gt_focal_3 - f3) / gt_focal_3
 
-    mean_gt_focal = (gt_focal_1 + gt_focal_2 + gt_focal_3) / 3
-    d['f_err'] = np.abs(mean_gt_focal - focal) / mean_gt_focal
+    # mean_gt_focal = (gt_focal_1 + gt_focal_2 + gt_focal_3) / 3
+    # d['f_err'] = np.abs(mean_gt_focal - focal) / mean_gt_focal
 
     info['inliers'] = []
     if 'inlier_ratio' not in info.keys():
@@ -161,13 +164,13 @@ def eval_experiment(x):
     if '3vHf' in experiment:
         ransac_dict['use_homography'] = True
 
-    if 'p3p' in experiment or 'scale' in experiment:
-        ransac_dict['scaled_relpose'] = True
-
-    if 'p3p' in experiment:
+    if 'p3p' in experiment or 'p4pf' in experiment:
         ransac_dict['use_p3p'] = True
 
     ransac_dict['lo_iterations'] = find_val('LO', experiment, int, default=25)
+
+    if 'c2' in experiment or 'p4pf' in experiment:
+        ransac_dict['problem'] = 2
 
     ransac_dict['use_degensac'] = 'degensac' in experiment
     # if 'degensac' in experiment:
@@ -177,17 +180,30 @@ def eval_experiment(x):
         start = perf_counter()
         out, info = poselib.estimate_shared_focal_relative_pose(x1_1, x2_1, pp, ransac_dict, bundle_dict)
         info['runtime'] = 1000 * (perf_counter() - start)
-        result_dict = get_result_dict_f_only(out.camera1.focal(), info, img1, camera_dicts)
-    elif experiment == '4pH + 4pH + 3vHf + voting (pairs)':
+        focal = out.camera1.focal()
+        result_dict = get_result_dict_f_only(focal, focal, focal, info, img1, img2, img3, camera_dicts)
+    elif '7pF + bougnoux (pairs)' in experiment:
         start = perf_counter()
-        focal = focal_voting(x1_1, x2_1, x1_2, x3_2, pp, iterations // 10, 0.2, 3.0)
-        info = {'runtime': 1000 * (perf_counter() - start), 'iterations': iterations}
-        result_dict = get_result_dict_f_only(focal, info, img1, camera_dicts)
-    elif experiment == '4pH + 4pH + 3vHf + voting (triplets)':
+        F, info = poselib.estimate_fundamental(x1_1, x2_1, ransac_dict)
+        camera1, camera3 = poselib.focals_from_fundamental(F, np.array([0.0, 0.0]), np.array([0.0, 0.0]))
+        info['runtime'] = 1000 * (perf_counter() - start)
+        result_dict = get_result_dict_f_only(camera1.focal(), camera1.focal(), camera3.focal(), info, img1, img2, img3, camera_dicts)
+    elif '7pF + iterative (pairs)' in experiment:
         start = perf_counter()
-        focal = focal_voting(x1, x2, x1, x3, pp, iterations // 10, 0.2, 3.0)
-        info = {'runtime': 1000 * (perf_counter() - start), 'iterations': iterations}
-        result_dict = get_result_dict_f_only(focal, info, img1, camera_dicts)
+        F, info = poselib.estimate_fundamental(x1_1, x2_1, ransac_dict)
+        camera1, camera3, iterations = poselib.focals_from_fundamental_iterative(F, np.array([0.0, 0.0]), np.array([0.0, 0.0]))
+        info['runtime'] = 1000 * (perf_counter() - start)
+        result_dict = get_result_dict_f_only(camera1.focal(), camera1.focal(), camera3.focal(), info, img1, img2, img3, camera_dicts)
+    # elif experiment == '4pH + 4pH + 3vHf + voting (pairs)':
+    #     start = perf_counter()
+    #     focal = focal_voting(x1_1, x2_1, x1_2, x3_2, pp, iterations // 10, 0.2, 3.0)
+    #     info = {'runtime': 1000 * (perf_counter() - start), 'iterations': iterations}
+    #     result_dict = get_result_dict_f_only(focal, info, img1, camera_dicts)
+    # elif experiment == '4pH + 4pH + 3vHf + voting (triplets)':
+    #     start = perf_counter()
+    #     focal = focal_voting(x1, x2, x1, x3, pp, iterations // 10, 0.2, 3.0)
+    #     info = {'runtime': 1000 * (perf_counter() - start), 'iterations': iterations}
+    #     result_dict = get_result_dict_f_only(focal, info, img1, camera_dicts)
     else:
         start = perf_counter()
         out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict)
@@ -238,9 +254,15 @@ def eval(args):
     # experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p', '4pH + 4pH + 3vHf + voting (pairs)',
     #                '4pH + 4pH + 3vHf + voting (triplets)', '6pf + p3p', '6pf + p3p + degensac', '6pf (pairs)',
     #                '6pf (pairs) + degensac']
-    experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p',
-                   '6pf + p3p', '6pf + p3p + degensac',
-                   '6pf (pairs)', '6pf (pairs) + degensac']
+
+    if args.case == 1:
+        experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p',
+                       '6pf + p3p', '6pf + p3p + degensac',
+                       '6pf (pairs)', '6pf (pairs) + degensac']
+    elif args.case == 2:
+        experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6pf + p4pf', '7pF + bougnoux (pairs)', '7pF + iterative (pairs)']
+        experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6pf + p4pf', '7pF + bougnoux (pairs)']
+
     # experiments = ['6pf + p3p', '6pf + p3p + degensac']
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
 
