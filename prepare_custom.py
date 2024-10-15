@@ -24,6 +24,7 @@ def parse_args():
     parser.add_argument('-n', '--num_samples', type=int, default=None)
     parser.add_argument('-a', '--area', type=float, default=None)
     parser.add_argument('-s', '--seed', type=int, default=100)
+    parser.add_argument('-c', '--case', type=int, default=1)
     parser.add_argument('-l', '--load', action='store_true', default=False)
     parser.add_argument('-f', '--features', type=str, default='superpoint')
     parser.add_argument('-mf', '--max_features', type=int, default=2048)
@@ -136,23 +137,39 @@ def create_triplets(out_dir, img_dict, calib_dict, args, img_list=None):
 
     matcher = lightglue.LightGlue(features=args.features).eval().cuda()
 
-    triplet_h5_path_str = f'triplets-{get_matcher_string(args)}-LG.h5'
+    triplet_h5_path_str = f'triplets-case{args.case}-{get_matcher_string(args)}-LG.h5'
     triplet_h5_path = os.path.join(out_dir, triplet_h5_path_str)
     triplet_h5_file = h5py.File(triplet_h5_path, 'w')
     print("Writing triplet matches to: ", triplet_h5_path)
 
     triplets = []
 
-    with tqdm(total=args.num_samples * len(img_dict)) as pbar:
+    sample_list = []
+
+    if args.case == 1:
         for camera, image_list in img_dict.items():
-            width, height = calib_dict[camera]['width'], calib_dict[camera]['height']
+            sample_list.append([camera, image_list, camera, image_list, camera, image_list])
+    elif args.case == 2:
+        for camera12, camera3 in itertools.combinations(list(img_dict.keys()), 2):
+            sample_list.append([camera12, img_dict[camera12], camera12, img_dict[camera12], camera3, img_dict[camera3]])
+
+    with tqdm(total=args.num_samples * len(sample_list)) as pbar:
+        for camera1, list1, camera2, list2, camera3, list3 in sample_list:
+            width1, height1 = calib_dict[camera1]['width'], calib_dict[camera1]['height']
+            width2, height2 = calib_dict[camera2]['width'], calib_dict[camera2]['height']
+            width3, height3 = calib_dict[camera3]['width'], calib_dict[camera3]['height']
             output = 0
             failures = 0
             while output < args.num_samples:
                 if failures > 100:
-                    print(f"Failed to find enough triplets for camera: {camera}, moving on with {output} triplets")
+                    print(f"Failed to find enough triplets for camera: {camera1}-{camera2}-{camera3}, moving on with {output} triplets")
                     break
-                img_triplet = random.sample(image_list, 3)
+
+                img_triplet = [random.choice(list1), random.choice(list2), random.choice(list3)]
+                if len(set(img_triplet)) < 3:
+                    failures +=1
+                    continue
+
                 img_triplet = [ntpath.normpath(x) for x in img_triplet]
                 triplet_label = '-'.join(img_triplet)
 
@@ -163,10 +180,6 @@ def create_triplets(out_dir, img_dict, calib_dict, args, img_list=None):
                 img_1, img_2, img_3 = img_triplet
 
                 feats_1 = features[f"{img_1}-0"]
-
-                # f = feats_1['keypoints'][0, :].detach().cpu().numpy()
-                # print(f"x: {np.min(f[0, :])}-{np.max(f[0, :])}")
-                # print(f"y: {np.min(f[1, :])}-{np.max(f[1, :])}")
 
                 feats_2 = [None] * 4
                 scores_12 = [None] * 4
@@ -181,7 +194,7 @@ def create_triplets(out_dir, img_dict, calib_dict, args, img_list=None):
                 feats_2 = feats_2[best_k_2]
                 matches_12 = matches_12[best_k_2]
                 scores_12 = scores_12[best_k_2]
-                ft2 = rot_f(width, height, best_k_2)
+                ft2 = rot_f(width2, height2, best_k_2)
 
                 feats_3 = [None] * 4
                 scores_13 = [None] * 4
@@ -196,7 +209,7 @@ def create_triplets(out_dir, img_dict, calib_dict, args, img_list=None):
                 feats_3 = feats_3[best_k_3]
                 matches_13 = matches_13[best_k_3]
                 scores_13 = scores_13[best_k_3]
-                ft3 = rot_f(width, height, best_k_3)
+                ft3 = rot_f(width3, height3, best_k_3)
 
                 out_23 = matcher({'image0': feats_2, 'image1': feats_3})
                 scores_23 = out_23['matching_scores0'][0].detach().cpu().numpy()
@@ -237,7 +250,10 @@ def create_triplets(out_dir, img_dict, calib_dict, args, img_list=None):
                     img1 = load_rotated_image(os.path.join(args.dataset_path, img_1.replace(ntpath.sep, os.path.sep)))
                     img2 = load_rotated_image(os.path.join(args.dataset_path, img_2.replace(ntpath.sep, os.path.sep)))
                     img3 = load_rotated_image(os.path.join(args.dataset_path, img_3.replace(ntpath.sep, os.path.sep)))
-                    joint_img = np.concatenate([img1, img2, img3], axis=1)
+                    joint_img = np.zeros([np.max([height1, height2, height3]), width1 + width2 + width3, 3], dtype=np.uint8)
+                    joint_img[:height1, :width1, :] = img1
+                    joint_img[:height2, width1:width1 + width2, :] = img2
+                    joint_img[:height3, width1+width2:width1+width2+width3, :] = img3
                     joint_img = np.concatenate([joint_img, joint_img], axis=0)
                     for i in range(len(kp1)):
                         joint_img = cv2.line(joint_img, (int(kp1[i][0]), int(kp1[i][1])), (int(kp2[i][0]) + img1.shape[1], int(kp2[i][1])), (0, 255, 0), thickness=3)
@@ -300,7 +316,7 @@ def create_triplets(out_dir, img_dict, calib_dict, args, img_list=None):
                     output += 1
                     failures = 0
 
-    triples_txt_path = os.path.join(out_dir, f'triplets-{get_matcher_string(args)}-LG.txt')
+    triples_txt_path = os.path.join(out_dir, f'triplets-case{args.case}-{get_matcher_string(args)}-LG.txt')
     print("Writing list of triplets to: ", triples_txt_path)
     with open(triples_txt_path, 'w') as f:
         f.writelines(line + '\n' for line in triplets)
