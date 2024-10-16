@@ -94,18 +94,20 @@ def plot_scene(points, R, t, f, width=640, height=480, color_1='black', color_2=
     plt.title(name)
 
 
-def get_scene(f, R1, t1, R2, t2, num_pts, X=None, seed=None, **kwargs):
+def get_scene(f1, f2, f3, R1, t1, R2, t2, num_pts, X=None, seed=None, **kwargs):
     if seed is not None:
         np.random.seed(seed)
-    K = np.diag([f, f, 1])
+    K1 = np.diag([f1, f1, 1])
+    K2 = np.diag([f2, f2, 1])
+    K3 = np.diag([f3, f3, 1])
 
 
-    P1 = K @ np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
-    P2 = K @ np.column_stack([R1, t1])
-    P3 = K @ np.column_stack([R2, t2])
+    P1 = K1 @ np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+    P2 = K2 @ np.column_stack([R1, t1])
+    P3 = K3 @ np.column_stack([R2, t2])
 
     if X is None:
-        X = generate_points(num_pts, f, **kwargs)
+        X = generate_points(num_pts, f1, **kwargs)
     x1 = get_projection(P1, X)
     x2 = get_projection(P2, X)
     x3 = get_projection(P3, X)
@@ -118,20 +120,23 @@ def get_scene(f, R1, t1, R2, t2, num_pts, X=None, seed=None, **kwargs):
 
 
 def run_synth():
-    f = 600
-    R12 = Rotation.from_euler('xyz', (3, 60, 0), degrees=True).as_matrix()
-    R13 = Rotation.from_euler('xyz', (-5, -30, 0), degrees=True).as_matrix()
-    c1 = np.array([2 * f, 0, f])
-    c2 = np.array([0, f, 0.5 * f])
+    f1 = 600
+    R12 = Rotation.from_euler('xyz', (30, 60, 0), degrees=True).as_matrix()
+    R13 = Rotation.from_euler('xyz', (-15, -30, 0), degrees=True).as_matrix()
+    c1 = np.array([2 * f1, 0, f1])
+    c2 = np.array([0, f1, 0.5 * f1])
     # R = Rotation.from_euler('xyz', (theta, 30, 0), degrees=True).as_matrix()
     # c = np.array([f1, y, 0])
     t12 = -R12 @ c1
     t13 = -R13 @ c2
     # t13 = 2 * t13 * np.linalg.norm(t12) / np.linalg.norm(t13)
 
-    x1, x2, x3, X = get_scene(f, R12, t12, R13, t13, 100, dominant_plane=0.95)
+    f2 = f1
+    f3 = 500
 
-    sigma = 0.0
+    x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=1.0)
+
+    sigma = 0.5
 
     x1 += sigma * np.random.randn(*(x1.shape))
     x2 += sigma * np.random.randn(*(x1.shape))
@@ -160,52 +165,53 @@ def run_synth():
     # print(T13)
 
     ransac_dict = {'max_epipolar_error': 2.5, 'progressive_sampling': False,
-                   'min_iterations': 1, 'max_iterations': 100, 'lo_iterations': 0,
-                   'inner_refine': False, 'threeview_check': True, 'use_homography': True, 'scaled_relpose': True,
-                   'use_hc': False, 'use_degensac': True}
+                   'min_iterations': 1000, 'max_iterations': 1000, 'lo_iterations': 25,
+                   'use_homography': True, 'use_degensac': False}
 
     pp = np.array([0, 0])
 
-    out, info = poselib.estimate_shared_focal_relative_pose(x1, x2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
-    focal = out.camera1.focal()
-    print(focal)
-    print(out.pose.R)
-    print(rotation_angle(out.pose.R.T @ R12))
-    print(angle(out.pose.t, t12))
+    # out, info = poselib.estimate_shared_focal_relative_pose(x1, x2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
+    # camera2 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
+    # out, info = poselib.estimate_onefocal_relative_pose(x1, x3, camera2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
+    # focal = out.camera1.focal()
+    # print(focal)
+    # print(out.pose.R)
+    # print(rotation_angle(out.pose.R.T @ R12))
+    # print(angle(out.pose.t, t12))
 
 
-    # out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
-    # pose = out.poses
+    ransac_dict['use_homography'] = False
+    ransac_dict['use_degensac'] = False
+    ransac_dict['use_onefocal'] = True
+    camera3 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
+    out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict, {'max_iterations': 100, 'verbose': False})
+    pose = out.poses
 
 
-
-    # focals = poselib.focal_from_homography(x1, x2, x1, x3, pp, 100, 0.2, 5.0)
-    # print(focals)
-    # print(len(focals))
-    # print(len(np.unique(focals)))
 
     # print("R errs")
-    # print(rotation_angle(pose.pose12.R.T @ R12))
-    # print(rotation_angle(pose.pose13.R.T @ R13))
-    # print(rotation_angle(pose.pose23().R.T @ R23))
-    # #
-    # print("T errs")
-    # print(angle(pose.pose12.t, t12))
-    # print(angle(pose.pose13.t, t13))
-    # print(angle(pose.pose23().t, t23))
+    print(rotation_angle(pose.pose12.R.T @ R12))
+    print(rotation_angle(pose.pose13.R.T @ R13))
+    print(rotation_angle(pose.pose23().R.T @ R23))
     #
-    # print("f err")
-    # f_err = np.abs(f - out.camera.focal()) / f
-    # print(f_err)
-    # print("Info")
-    # print(f'iterations: {info["iterations"]} \t num_inliers: {info["num_inliers"] / len(x1)}')
+    # print("T errs")
+    print(angle(pose.pose12.t, t12))
+    print(angle(pose.pose13.t, t13))
+    print(angle(pose.pose23().t, t23))
+
+    f1_err = np.abs(f1 - out.camera1.focal()) / f1
+    print("f1 err: ", f1_err)
+
+    f3_err = np.abs(f3 - out.camera3.focal()) / f3
+    print("f3 err: ", f3_err)
+
+
+    print("Info")
+    print(f'iterations: {info["iterations"]} \t num_inliers: {info["num_inliers"] / len(x1)}')
 
     inlier_ratio = info["num_inliers"] / len(x1)
 
-    # return out5['iterations'], out4['iterations'], outR['iterations']
-    # inlier_ratio = 0
-    f_err = np.abs(focal - f) / f
-    return f_err, inlier_ratio
+    return f1_err, inlier_ratio
 
 
 if __name__ == '__main__':

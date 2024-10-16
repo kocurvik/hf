@@ -24,8 +24,8 @@ def draw_results_focal_auc(results, experiments, iterations_list, title='', save
             iter_results = [x for x in experiment_results if x['info']['iterations'] == iterations]
             mean_runtime = np.mean([x['info']['runtime'] for x in iter_results])
             errs = [r['f1_err'] for r in iter_results]
-            errs.extend([r['f2_err'] for r in iter_results])
-            errs.extend([r['f3_err'] for r in iter_results])
+            # errs.extend([r['f2_err'] for r in iter_results])
+            # errs.extend([r['f3_err'] for r in iter_results])
             errs = np.array(errs)
             errs[np.isnan(errs)] = 1.0
             AUC20 = np.mean(np.array([np.sum(errs * 100 < t) / len(errs) for t in range(1, 11)]))
@@ -63,8 +63,8 @@ def draw_results_focal_cumdist(results, experiments, title='', save=None):
             xs = np.arange(101)
 
             errs = [r['f1_err'] for r in experiment_results]
-            errs.extend([r['f2_err'] for r in experiment_results])
-            errs.extend([r['f3_err'] for r in experiment_results])
+            # errs.extend([r['f2_err'] for r in experiment_results])
+            # errs.extend([r['f3_err'] for r in experiment_results])
             errs = np.array(errs)
             errs[np.isnan(errs)] = 1.0
             res = np.array([np.sum(errs * 100 < t) / len(errs) for t in xs])
@@ -98,8 +98,8 @@ def draw_results_focal_median(results, experiments, iterations_list, title='', s
             iter_results = [x for x in experiment_results if x['info']['iterations'] == iterations]
             mean_runtime = np.mean([x['info']['runtime'] for x in iter_results])
             errs = [r['f1_err'] for r in iter_results]
-            errs.extend([r['f2_err'] for r in iter_results])
-            errs.extend([r['f3_err'] for r in iter_results])
+            # errs.extend([r['f2_err'] for r in iter_results])
+            # errs.extend([r['f3_err'] for r in iter_results])
             errs = np.array(errs)
             errs[np.isnan(errs)] = 1.0
 

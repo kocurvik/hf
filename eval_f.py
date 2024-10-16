@@ -138,7 +138,7 @@ def get_result_dict_f_only(f1, f2, f3, info, img1, img2, img3, K_dict):
 
 def eval_experiment(x):
     torch.set_num_threads(1)
-    experiment, iterations, img1, img2, img3, triplet, pair12, pair13, R_dict, T_dict, camera_dicts = x
+    experiment, iterations, img1, img2, img3, triplet, pair12, pair13, R_dict, T_dict, camera_dicts, case = x
 
     x1 = triplet[:, 0:2]
     x2 = triplet[:, 2:4]
@@ -164,51 +164,44 @@ def eval_experiment(x):
     if '3vHf' in experiment:
         ransac_dict['use_homography'] = True
 
-    if 'p3p' in experiment or 'p4pf' in experiment:
-        ransac_dict['use_p3p'] = True
-
     ransac_dict['lo_iterations'] = find_val('LO', experiment, int, default=25)
 
-    if 'c2' in experiment or 'p4pf' in experiment:
-        ransac_dict['problem'] = 2
-
     ransac_dict['use_degensac'] = 'degensac' in experiment
-    # if 'degensac' in experiment:
-    #     ransac_dict['lo_iterations'] = 0
+    ransac_dict['use_onefocal'] = '6p Ef' in experiment
 
-    if '6pf (pairs)' in experiment:
-        start = perf_counter()
-        out, info = poselib.estimate_shared_focal_relative_pose(x1_1, x2_1, pp, ransac_dict, bundle_dict)
-        info['runtime'] = 1000 * (perf_counter() - start)
-        focal = out.camera1.focal()
-        result_dict = get_result_dict_f_only(focal, focal, focal, info, img1, img2, img3, camera_dicts)
-    elif '7pF + bougnoux (pairs)' in experiment:
-        start = perf_counter()
-        F, info = poselib.estimate_fundamental(x1_1, x2_1, ransac_dict)
-        camera1, camera3 = poselib.focals_from_fundamental(F, np.array([0.0, 0.0]), np.array([0.0, 0.0]))
-        info['runtime'] = 1000 * (perf_counter() - start)
-        result_dict = get_result_dict_f_only(camera1.focal(), camera1.focal(), camera3.focal(), info, img1, img2, img3, camera_dicts)
-    elif '7pF + iterative (pairs)' in experiment:
-        start = perf_counter()
-        F, info = poselib.estimate_fundamental(x1_1, x2_1, ransac_dict)
-        camera1, camera3, iterations = poselib.focals_from_fundamental_iterative(F, np.array([0.0, 0.0]), np.array([0.0, 0.0]))
-        info['runtime'] = 1000 * (perf_counter() - start)
-        result_dict = get_result_dict_f_only(camera1.focal(), camera1.focal(), camera3.focal(), info, img1, img2, img3, camera_dicts)
-    # elif experiment == '4pH + 4pH + 3vHf + voting (pairs)':
-    #     start = perf_counter()
-    #     focal = focal_voting(x1_1, x2_1, x1_2, x3_2, pp, iterations // 10, 0.2, 3.0)
-    #     info = {'runtime': 1000 * (perf_counter() - start), 'iterations': iterations}
-    #     result_dict = get_result_dict_f_only(focal, info, img1, camera_dicts)
-    # elif experiment == '4pH + 4pH + 3vHf + voting (triplets)':
-    #     start = perf_counter()
-    #     focal = focal_voting(x1, x2, x1, x3, pp, iterations // 10, 0.2, 3.0)
-    #     info = {'runtime': 1000 * (perf_counter() - start), 'iterations': iterations}
-    #     result_dict = get_result_dict_f_only(focal, info, img1, camera_dicts)
-    else:
-        start = perf_counter()
-        out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict)
-        info['runtime'] = 1000 * (perf_counter() - start)
-        result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
+    camera3 = camera_dicts[img3]
+    f3 = camera3['params'][0]
+
+    if case == 1:
+        if '6p fEf (pairs)' in experiment:
+            start = perf_counter()
+            out, info = poselib.estimate_shared_focal_relative_pose(x1_1, x2_1, pp, ransac_dict, bundle_dict)
+            info['runtime'] = 1000 * (perf_counter() - start)
+            focal = out.camera1.focal()
+            result_dict = get_result_dict_f_only(focal, focal, focal, info, img1, img2, img3, camera_dicts)
+        else:
+            start = perf_counter()
+            out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict)
+            info['runtime'] = 1000 * (perf_counter() - start)
+            result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
+    elif case == 2:
+        if '6p fEf (pairs)' in experiment:
+            start = perf_counter()
+            out, info = poselib.estimate_shared_focal_relative_pose(x1_1, x2_1, pp, ransac_dict, bundle_dict)
+            info['runtime'] = 1000 * (perf_counter() - start)
+            focal = out.camera1.focal()
+            result_dict = get_result_dict_f_only(focal, focal, f3, info, img1, img2, img3, camera_dicts)
+        elif '6p Ef (pairs)' in experiment:
+            start = perf_counter()
+            out, info = poselib.estimate_onefocal_relative_pose(x1_2, x3_2, camera3, pp, ransac_dict, bundle_dict)
+            info['runtime'] = 1000 * (perf_counter() - start)
+            focal = out.camera1.focal()
+            result_dict = get_result_dict_f_only(focal, focal, f3, info, img1, img2, img3, camera_dicts)
+        else:
+            start = perf_counter()
+            out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict)
+            info['runtime'] = 1000 * (perf_counter() - start)
+            result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
 
     result_dict['experiment'] = experiment
     result_dict['img1'] = img1
@@ -245,8 +238,8 @@ def eval(args):
     basename = os.path.basename(dataset_path)
     if args.graph:
         basename = f'{basename}-graph'
-        iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
-        # iterations_list = [10, 20, 50, 100, 200, 500, 1000]
+        # iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+        iterations_list = [10, 20, 50, 100, 200, 500, 1000]
         # iterations_list = [10, 20, 50, 100]
     else:
         iterations_list = [None]
@@ -256,12 +249,12 @@ def eval(args):
     #                '6pf (pairs) + degensac']
 
     if args.case == 1:
-        experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p',
-                       '6pf + p3p', '6pf + p3p + degensac',
-                       '6pf (pairs)', '6pf (pairs) + degensac']
+        experiments = ['4pH + 4pH + 3vHfc1 + p3p',
+                       '6p fEf + p3p', '6p fEf + p3p + degensac',
+                       '6p fEf (pairs)', '6p fEf (pairs) + degensac']
     elif args.case == 2:
-        experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6pf + p4pf', '7pF + bougnoux (pairs)', '7pF + iterative (pairs)']
-        experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6pf + p4pf', '7pF + bougnoux (pairs)']
+        experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p Ef + p3p',
+                       '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
     # experiments = ['6pf + p3p', '6pf + p3p + degensac']
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
@@ -333,7 +326,7 @@ def eval(args):
 
                 for iterations in iterations_list:
                     for experiment in experiments:
-                        yield experiment, iterations, img1, img2, img3, triplet, pair12, pair13, R_dict_l, T_dict_l, camera_dicts_l
+                        yield experiment, iterations, img1, img2, img3, triplet, pair12, pair13, R_dict_l, T_dict_l, camera_dicts_l, args.case
 
         total_length = len(experiments) * len(triplets) * len(iterations_list)
         print(f"Total runs: {total_length} for {len(triplets)} samples")
