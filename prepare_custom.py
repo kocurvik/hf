@@ -356,7 +356,6 @@ def run_im(args):
     scene_dict = {}
 
     camera_list = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x))]
-    camera_list = ['DellWide']
     for camera in camera_list:
         if args.scene is None:
             scenes = [x for x in os.listdir(os.path.join(dataset_path, camera)) if os.path.isdir(os.path.join(dataset_path, camera, x))]
