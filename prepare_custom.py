@@ -22,7 +22,6 @@ from utils.matching import LoFTRMatcher
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--num_samples', type=int, default=None)
-    parser.add_argument('-a', '--area', type=float, default=None)
     parser.add_argument('-s', '--seed', type=int, default=100)
     parser.add_argument('-c', '--case', type=int, default=1)
     parser.add_argument('-l', '--load', action='store_true', default=False)
@@ -31,6 +30,7 @@ def parse_args():
     parser.add_argument('-r', '--resize', type=int, default=None)
     parser.add_argument('--recalc', action='store_true', default=False)
     parser.add_argument('-d', '--debug', action='store_true', default=False)
+    parser.add_argument('-a', '--append', action='store_true', default=False)
     parser.add_argument('--scene', type=str, default=None)
 
     parser.add_argument('out_path')
@@ -83,12 +83,24 @@ def extract_features(dataset_path, img_dict, calib_dict, out_dir, args):
         return
 
     print("Extracting features")
-    feature_dict = {}
+
+    if args.append:
+        feature_dict = torch.load(out_path)
+        print("Loaded features from: ", out_path)
+    else:
+        feature_dict = {}
 
     for camera, img_list in img_dict.items():
         width = calib_dict[camera]['width']
         height = calib_dict[camera]['height']
         for img in tqdm(img_list):
+            if args.append:
+                if f"{ntpath.normpath(img)}-0" in feature_dict.keys() \
+                        and f"{ntpath.normpath(img)}-1" in feature_dict.keys() \
+                        and f"{ntpath.normpath(img)}-2" in feature_dict.keys() \
+                        and f"{ntpath.normpath(img)}-3" in feature_dict.keys():
+                    continue
+
             img_path = os.path.join(dataset_path, img)
 
             image_tensor = numpy_image_to_torch(load_rotated_image(img_path)[:, :, ::-1]).cuda()
@@ -344,12 +356,12 @@ def run_im(args):
     scene_dict = {}
 
     camera_list = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x))]
+    camera_list = ['DellWide']
     for camera in camera_list:
         if args.scene is None:
             scenes = [x for x in os.listdir(os.path.join(dataset_path, camera)) if os.path.isdir(os.path.join(dataset_path, camera, x))]
         else:
             scenes = [args.scene] if args.scene in os.listdir(os.path.join(dataset_path, camera)) else []
-        # scenes = [x for x in ['Floor'] if os.path.isdir(os.path.join(dataset_path, camera, x))]
         for scene in scenes:
             if scene in scene_dict.keys():
                 scene_dict[scene].append(camera)
