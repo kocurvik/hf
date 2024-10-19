@@ -15,9 +15,7 @@ def generate_points(num_pts, f, distance=2, depth=1, dominant_plane=0.0,  width=
 
     xs = (np.random.rand(num_pts) - 0.5) * width * (1 + distance)
     ys = (np.random.rand(num_pts) - 0.5) * height * (1 + distance)
-    # X = np.column_stack([xs, ys, zs])
-    # X = (Rotation.from_euler('xyz', (0, 10, 0), degrees=True).as_matrix() @ X.T).T
-    # return np.column_stack([X, np.ones_like(xs)])
+
     return np.column_stack([xs, ys, zs, np.ones_like(xs)])
 
 
@@ -26,7 +24,7 @@ def get_projection(P, X):
     x = x[:2, :] / x[2, np.newaxis, :]
     return x.T
 
-def visible_in_view(x, width=640, height=480):
+def visible_in_view(x, width=640, height=480, **kwargs):
     visible = np.logical_and(np.abs(x[:, 0]) <= width / 2, np.abs(x[:, 1]) <= height / 2)
     return visible
 
@@ -92,6 +90,108 @@ def plot_scene(points, R, t, f, width=640, height=480, color_1='black', color_2=
     plt.ylabel('Y')
     ax.set_zlabel('Z')
     plt.title(name)
+    return ax
+
+
+def look_at_rotation(camera_center, target_point):
+    """
+    Computes the rotation matrix that aligns the camera's optical axis
+    to point at a specific target in 3D space.
+
+    :param camera_center: The 3D coordinates of the camera center (a point in world coordinates).
+    :param target_point: The 3D coordinates of the point the camera should look at.
+    :return: A 3x3 rotation matrix that rotates the camera to look at the target point.
+    """
+    # Compute the forward vector (from the camera center to the target point)
+    forward = target_point - camera_center
+    forward = forward / np.linalg.norm(forward)  # Normalize the forward vector
+
+    # Assume that the up vector of the camera is the world y-axis (0, 1, 0)
+    world_up = np.array([0, -1, 0])
+
+    # Compute the right vector by taking the cross product of forward and world up
+    right = np.cross(world_up, forward)
+    if np.linalg.norm(right) < 1e-6:
+        # If forward and world_up are nearly collinear, use a different up vector
+        world_up = np.array([1, 0, 0])
+        right = np.cross(world_up, forward)
+
+    right = right / np.linalg.norm(right)  # Normalize the right vector
+
+    # Compute the true up vector (orthogonal to both forward and right)
+    up = np.cross(forward, right)
+    up = up / np.linalg.norm(up)
+
+    # Create the rotation matrix: [right, up, -forward] (column-wise)
+    # Camera looks along the -z axis (forward vector)
+    rotation_matrix = np.stack([right, up, forward], axis=1)
+
+    return rotation_matrix
+
+
+def get_random_scene(f1, f2, f3, n, dominant_plane=0.5, width=1920, height=1080):
+    look_at2 = 4 * f1 * (0.5 - np.random.rand(3)) + np.array([0, 0, 5 * f1])
+    c2 = 4 * f1 * (0.5 - np.random.rand(3))
+    R2 = look_at_rotation(c2, look_at2)
+    c3 = 4 * f1 * (0.5 - np.random.rand(3))
+    look_at3 = 4 * f1 * (0.5 - np.random.rand(3)) + np.array([0, 0, 5 * f1])
+    R3 = look_at_rotation(c3, look_at3)
+    t2 = -R2 @ c2
+    t3 = -R3 @ c3
+
+    K1 = np.diag([f1, f1, 1])
+    K2 = np.diag([f2, f2, 1])
+    K3 = np.diag([f3, f3, 1])
+
+    P1 = K1 @ np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+    P2 = K2 @ np.column_stack([R2, t2])
+    P3 = K3 @ np.column_stack([R3, t3])
+
+    num_plane = int(dominant_plane * n)
+    num_pts = n - num_plane
+
+    X = 4 * f1 * (0.5 - np.random.rand(10 * num_pts, 3)) + np.array([0, 0, 5 * f1])
+    X_h = np.column_stack([X, np.ones(len(X))])
+    x1 = get_projection(P1, X_h)
+    x2 = get_projection(P2, X_h)
+    x3 = get_projection(P3, X_h)
+
+    l = visible_in_view(x1, width=width, height=height) + visible_in_view(x2, width=width, height=height) + visible_in_view(x3, width=width, height=height)
+
+    idxs = np.where(l)[0][:num_pts]
+    if len(idxs) < num_pts:
+        return get_random_scene(f1, f2, f3, n, width=width, height=height)
+
+    x1, x2, x3, X = x1[idxs], x2[idxs], x3[idxs], X[idxs]
+
+    plane_angle_x = 30 / 180 * np.pi * np.random.randn()
+    plane_angle_y = 30 / 180 * np.pi * np.random.randn()
+
+    Xp = 4 * f1 * (0.5 - np.random.rand(10 * num_plane, 3))
+    Xp[:, 2] = np.tan(plane_angle_x) * Xp[:, 0] + np.tan(plane_angle_y) * Xp[:, 1] + 5 * f1
+    Xp_h = np.column_stack([Xp, np.ones(len(Xp))])
+    x1p = get_projection(P1, Xp_h)
+    x2p = get_projection(P2, Xp_h)
+    x3p = get_projection(P3, Xp_h)
+
+    visible_p = visible_in_view(x1p, width=width, height=height) + visible_in_view(x2p, width=width, height=height) + visible_in_view(x3p, width=width, height=height)
+
+    idxs = np.where(visible_p)[0][:num_plane]
+    if len(idxs) < num_plane:
+        return get_random_scene(f1, f2, f3, n, width=width, height=height)
+
+    x1p, x2p, x3p, Xp = x1p[idxs], x2p[idxs], x3p[idxs], Xp[idxs]
+
+    x1 = np.row_stack([x1, x1p])
+    x2 = np.row_stack([x2, x2p])
+    x3 = np.row_stack([x3, x3p])
+    X = np.row_stack([X, Xp])
+
+    # ax = plot_scene(X, R2, t2, f1, width=width, height=height)
+    # ax.scatter3D(*look_at2, color='g')
+    # plt.show()
+
+    return x1, x2, x3, X
 
 
 def get_scene(f1, f2, f3, R1, t1, R2, t2, num_pts, X=None, seed=None, **kwargs):
@@ -107,20 +207,25 @@ def get_scene(f1, f2, f3, R1, t1, R2, t2, num_pts, X=None, seed=None, **kwargs):
     P3 = K3 @ np.column_stack([R2, t2])
 
     if X is None:
-        X = generate_points(num_pts, f1, **kwargs)
+        X = generate_points(3 * num_pts, f1, **kwargs)
     x1 = get_projection(P1, X)
     x2 = get_projection(P2, X)
     x3 = get_projection(P3, X)
 
-    # visible_2 = visible_in_view(x2, width=width, height=height)
-    # visible_3 = visible_in_view(x3, width=width, height=height)
-    # x1, x2, X = x1[visible][:num_pts], x2[visible][:num_pts], X[visible]
+    # visible_2 = visible_in_view(x2, **kwargs)
+    # visible_3 = visible_in_view(x3, **kwargs)
+    # visible = np.logical_and(visible_2, visible_3)
+    #
+    # x1 = x1[visible]
+    # x2 = x2[visible]
+    # x3 = x3[visible]
+    # X = X[visible]
 
     return x1, x2, x3, X
 
 
 def run_synth():
-    f1 = 600
+    f1 = 1600
     R12 = Rotation.from_euler('xyz', (30, 60, 0), degrees=True).as_matrix()
     R13 = Rotation.from_euler('xyz', (-15, -30, 0), degrees=True).as_matrix()
     c1 = np.array([2 * f1, 0, f1])
@@ -132,11 +237,12 @@ def run_synth():
     # t13 = 2 * t13 * np.linalg.norm(t12) / np.linalg.norm(t13)
 
     f2 = f1
-    f3 = 500
+    f3 = 1200
 
-    x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=1.0)
+    # x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=0.8)
+    x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=0.8)
 
-    sigma = 0.5
+    sigma = 1.5
 
     x1 += sigma * np.random.randn(*(x1.shape))
     x2 += sigma * np.random.randn(*(x1.shape))
@@ -171,21 +277,21 @@ def run_synth():
     pp = np.array([0, 0])
 
     # out, info = poselib.estimate_shared_focal_relative_pose(x1, x2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
-    # camera2 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
-    # out, info = poselib.estimate_onefocal_relative_pose(x1, x3, camera2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
-    # focal = out.camera1.focal()
-    # print(focal)
+    camera2 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
+    out, info = poselib.estimate_onefocal_relative_pose(x1, x3, camera2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
+    focal = out.camera1.focal()
+    print(focal)
     # print(out.pose.R)
     # print(rotation_angle(out.pose.R.T @ R12))
     # print(angle(out.pose.t, t12))
 
 
-    ransac_dict['use_homography'] = False
-    ransac_dict['use_degensac'] = False
-    ransac_dict['use_onefocal'] = True
-    camera3 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
-    out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict, {'max_iterations': 100, 'verbose': False})
-    pose = out.poses
+    # ransac_dict['use_homography'] = False
+    # ransac_dict['use_degensac'] = False
+    # ransac_dict['use_onefocal'] = True
+    # camera3 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
+    # out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict, {'max_iterations': 100, 'verbose': False})
+    # pose = out.poses
 
 
 
@@ -215,6 +321,9 @@ def run_synth():
 
 
 if __name__ == '__main__':
+    get_random_scene(2000, 2000, 2000, 300, width=1920, height=1080)
+
+
     iters = [run_synth() for _ in range(1)]
     f_errs = [x[0] for x in iters]
     inlier_ratios = [x[1] for x in iters]

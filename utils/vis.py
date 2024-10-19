@@ -6,12 +6,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from dataset_utils.data import colors, experiments, iterations_list, get_basenames, pose_err_max
+from dataset_utils.data import experiments, iterations_list, get_basenames, pose_err_max, get_experiments
 
 large_size = 12
 small_size = 10
 
-def draw_results_focal_auc(results, experiments, iterations_list, title='', save=None):
+def draw_results_focal_auc(results, experiments, iterations_list, colors=None, title='', save=None):
     plt.figure()
 
     for experiment in tqdm(experiments):
@@ -28,30 +28,32 @@ def draw_results_focal_auc(results, experiments, iterations_list, title='', save
             # errs.extend([r['f3_err'] for r in iter_results])
             errs = np.array(errs)
             errs[np.isnan(errs)] = 1.0
-            AUC20 = np.mean(np.array([np.sum(errs * 100 < t) / len(errs) for t in range(1, 11)]))
+            AUC10 = np.mean(np.array([np.sum(errs * 100 < t) / len(errs) for t in range(1, 11)]))
 
             xs.append(mean_runtime)
-            ys.append(AUC20)
-
-        plt.semilogx(xs, ys, label=experiment, marker='*')
+            ys.append(AUC10)
+        if colors is None:
+            plt.semilogx(xs, ys, label=experiment, marker='*')
+        else:
+            plt.semilogx(xs, ys, label=experiment, marker='*', color=colors[experiment])
 
     # title += f"Error: max(0.5 * (out['R_12_err'] + out['R_13_err']), 0.5 * (out['t_12_err'] + out['t_13_err']))"
 
-    plt.title(title, fontsize=8)
+
 
     plt.xlabel('Mean runtime (ms)', fontsize=large_size)
-    plt.ylabel('AUC@0.1', fontsize=large_size)
+    plt.ylabel('$f$ AUC@0.1', fontsize=large_size)
     plt.tick_params(axis='x', which='major', labelsize=small_size)
     plt.tick_params(axis='y', which='major', labelsize=small_size)
-    plt.legend()
-    if save:
-        plt.savefig(save)
-    else:
+
+    if not save:
+        plt.title(title, fontsize=8)
+        plt.legend()
         plt.show()
+    else:
+        plt.savefig(save)
 
 def draw_results_focal_cumdist(results, experiments, title='', save=None):
-    # cameras = ['IPhoneZBHback', 'IPhoneZBHfront', 'LenovoTabletBack', 'LenovoTabletFront', 'OldIphoneBack', 'OldIphoneFront', 'SamsungBack', 'SamsungFront', 'SamsungGlossyBack', 'SamsungGlossyFront', 'MotoFront', 'MotoBack']
-
     cameras = np.unique([ntpath.basename(x['img1'].split(ntpath.sep)[0]) for x in results])
 
     for camera in cameras:
@@ -84,6 +86,38 @@ def draw_results_focal_cumdist(results, experiments, title='', save=None):
             plt.savefig(save)
         else:
             plt.show()
+
+def draw_results_focal_cumdist_all(results, experiments, colors=None, title='', save=None):
+    cameras = np.unique([ntpath.basename(x['img1'].split(ntpath.sep)[0]) for x in results])
+
+    plt.figure()
+    for experiment in tqdm(experiments):
+        experiment_results = [x for x in results if x['experiment'] == experiment]
+
+        xs = np.arange(101)
+
+        errs = [r['f1_err'] for r in experiment_results]
+        errs = np.array(errs)
+        errs[np.isnan(errs)] = 1.0
+        res = np.array([np.sum(errs * 100 < t) / len(errs) for t in xs])
+
+        if colors is None:
+            plt.plot(xs, res, label=experiment)
+        else:
+            plt.plot(xs, res, label=experiment, color=colors[experiment])
+
+    plt.xlabel('$f_{err}$', fontsize=large_size)
+    plt.ylabel('Portion of samples', fontsize=large_size)
+    plt.ylim([0, 1])
+    plt.xlim([0, 1])
+    plt.tick_params(axis='x', which='major', labelsize=small_size)
+    plt.tick_params(axis='y', which='major', labelsize=small_size)
+    if save:
+        plt.savefig(save)
+    else:
+        plt.title(title, fontsize=8)
+        plt.legend()
+        plt.show()
 
 def draw_results_focal_median(results, experiments, iterations_list, title='', save=None):
     plt.figure()
@@ -198,8 +232,24 @@ def draw_results_pose_portion(results, experiments, iterations_list, title=None)
         plt.legend()
         plt.show()
 
-def generate_graphs(dataset, results_type, all=True):
+def generate_graphs(dataset, results_type, case, all=True):
     basenames = get_basenames(dataset)
+    experiments, colors = get_experiments(case)
+
+    results = []
+    for basename in basenames:
+        json_path = os.path.join('results', f'focal_graph{basename}-{results_type}.json')
+        print(f'json_path: {json_path}')
+        with open(json_path, 'r') as f:
+            if all:
+                results.extend([x for x in json.load(f) if x['experiment'] in experiments])
+            else:
+                results = [x for x in json.load(f) if x['experiment'] in experiments]
+                draw_results_focal_auc(results, experiments, iterations_list, f'{dataset}_{basename}_{results_type}')
+
+    if all:
+        draw_results_focal_auc(results, experiments, iterations_list, colors=colors, save=f'figs/all_case{case}_fauc.pdf')
+
 
     results = []
     for basename in basenames:
@@ -213,22 +263,9 @@ def generate_graphs(dataset, results_type, all=True):
                 draw_results_focal_auc(results, experiments, iterations_list, f'{dataset}_{basename}_{results_type}')
 
     if all:
-        title = f'{dataset}_{results_type}'
-        draw_results_focal_auc(results, experiments, iterations_list, title)
-        draw_results_focal_median(results, experiments, iterations_list, title)
-    # draw_results_pose_portion(results, experiments, iterations_list, title)
+        draw_results_focal_cumdist_all(results, experiments, colors=colors, save=f'figs/all_case{case}_fcumdist.pdf')
 
 if __name__ == '__main__':
-    generate_graphs('phone_planar', 'graph-triplets-features_superpoint_2048_2048-LG', all=True)
-    # generate_graphs('cambridge', 'graph-triplets-features_superpoint_noresize_2048-LG', all=True, use_max_err=True)
-    # generate_graphs('pt', 'graph-triplets-features_superpoint_noresize_2048-LG', all=True, use_max_err=True)
-    # generate_graphs('cambridge', 'graph-triplets-features_superpoint_noresize_2048-LG', all=False)
-    # generate_graphs('pt', 'graph-0.4inliers-triplets-features_superpoint_noresize_2048-LG', all=False)
-    # generate_graphs('pt', 'graph-triplets-features_superpoint_noresize_2048-LG', all=True, use_max_err=True)
-    # generate_graphs('pt', 'graph-triplets-features_superpoint_noresize_2048-LG', all=False)
-    # generate_graphs('urban', 'graph-triplets-features_superpoint_noresize_2048-LG')
-    # generate_graphs('pt', 'graph-triplets-features_loftr_1024_0')
-    # generate_graphs('eth3d', 'graph-triplets-features_superpoint_1600_2048-LG')
-    # generate_graphs('eth3d', 'graph-triplets-a0.4-features_superpoint_noresize_2048-LG')
-    # generate_graphs('aachen', 'graph-triplets-a0.4-features_superpoint_noresize_2048-LG')
-    ...
+    generate_graphs('custom_planar', 'triplets-case1-features_superpoint_noresize_2048-LG', 1, all=True)
+    generate_graphs('custom_planar', 'triplets-case2-features_superpoint_noresize_2048-LG', 2, all=True)
+

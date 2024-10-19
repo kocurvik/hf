@@ -68,19 +68,21 @@ def calibrate(images):
     print(f"total error: {mean_error / len(objpoints)} px")
     # print(f"Std dev intrinsics: {stdDeviationsIntrinsics}")
 
-    return mtx, dist, width, height
+    return mtx, dist, width, height, mean_error / len(objpoints)
 
 
-def get_cam_dict(mtx, dist, width, height):
+def get_cam_dict(mtx, dist, width, height, err):
     d = {}
     d['focal'] = (mtx[0, 0] + mtx[1, 1]) / 2
     d['fx'] = mtx[0, 0]
     d['fy'] = mtx[1, 1]
     d['pp'] = mtx[:2, 2].tolist()
     d['K'] = mtx.tolist()
+    d['fov'] = 2 * np.rad2deg(np.arctan(width / (2 * d['focal'])))
     d['distortion_coeffs'] = dist.tolist()
     d['width'] = width
     d['height'] = height
+    d['mean_reprojection_error'] = err
     return d
 
 

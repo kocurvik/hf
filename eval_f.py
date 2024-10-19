@@ -152,7 +152,7 @@ def eval_experiment(x):
     num_pts = int(experiment[0])
     if iterations is None:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
-                       'min_iterations': 100, 'max_iterations': 100}
+                       'min_iterations': 100, 'max_iterations': 1000}
     else:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
                        'min_iterations': iterations, 'max_iterations': iterations}
@@ -161,8 +161,7 @@ def eval_experiment(x):
     pp = np.array(camera_dicts[img1]['params'][-2:])
 
     # ransac_dict['use_hc'] = '4p3vHCf' in experiment
-    if '3vHf' in experiment:
-        ransac_dict['use_homography'] = True
+    ransac_dict['use_homography'] = '3vHf' in experiment
 
     ransac_dict['lo_iterations'] = find_val('LO', experiment, int, default=25)
 
