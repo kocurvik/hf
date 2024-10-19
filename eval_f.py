@@ -15,7 +15,7 @@ from tqdm import tqdm
 from utils.geometry import rotation_angle, angle, get_pose
 from utils.tables import print_results, print_results_summary
 from utils.vis import draw_results_focal_auc, draw_results_focal_median, \
-    draw_results_focal_cumdist
+    draw_results_focal_cumdist, draw_results_focal_cumdist_all
 from utils.voting import focal_voting
 
 
@@ -375,7 +375,7 @@ def eval(args):
         plt.show()
     else:
         # draw_results_focal_cumdist(results, experiments, title=title, save=f'figs/cumdistf_{fig_save_name}')
-        draw_results_focal_cumdist(results, experiments, title=title)
+        draw_results_focal_cumdist_all(results, experiments, title=title, save=f'figs/graph_cumdist_{fig_save_name}')
         plt.show()
 
 if __name__ == '__main__':
