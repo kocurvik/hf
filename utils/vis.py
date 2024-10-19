@@ -71,7 +71,7 @@ def draw_results_focal_cumdist(results, experiments, title='', save=None):
             errs[np.isnan(errs)] = 1.0
             res = np.array([np.sum(errs * 100 < t) / len(errs) for t in xs])
 
-            plt.plot(xs, res, label=experiment)
+            plt.plot(xs / 100, res, label=experiment)
 
         # title += f"Error: max(0.5 * (out['R_12_err'] + out['R_13_err']), 0.5 * (out['t_12_err'] + out['t_13_err']))"
 
@@ -102,9 +102,9 @@ def draw_results_focal_cumdist_all(results, experiments, colors=None, title='', 
         res = np.array([np.sum(errs * 100 < t) / len(errs) for t in xs])
 
         if colors is None:
-            plt.plot(xs, res, label=experiment)
+            plt.plot(xs / 100, res, label=experiment)
         else:
-            plt.plot(xs, res, label=experiment, color=colors[experiment])
+            plt.plot(xs / 100, res, label=experiment, color=colors[experiment])
 
     plt.xlabel('$f_{err}$', fontsize=large_size)
     plt.ylabel('Portion of samples', fontsize=large_size)
