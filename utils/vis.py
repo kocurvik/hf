@@ -4,15 +4,35 @@ import os
 
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib import rc
 from tqdm import tqdm
+import seaborn as sns
+
 
 from dataset_utils.data import experiments, iterations_list, get_basenames, pose_err_max, get_experiments
 
-large_size = 12
-small_size = 10
+# large_size = 12
+# small_size = 10
+
+large_size = 24
+small_size = 20
+
+print(sns.color_palette("tab10").as_hex())
+
+plt.rcParams.update({'figure.autolayout': True})
+
+# plt.rcParams.update({'figure.autolayout': True})
+rc('font',**{'family':'serif','serif':['Times New Roman']})
+# rc('font',**{'family':'serif'})
+rc('text', usetex=True)
+
+plt.rcParams['mathtext.fontset'] = 'custom'
+plt.rcParams['mathtext.rm'] = 'Times New Roman'
+plt.rcParams['mathtext.it'] = 'Times New Roman:italic'
+plt.rcParams['mathtext.bf'] = 'Times New Roman:bold'
 
 def draw_results_focal_auc(results, experiments, iterations_list, colors=None, title='', save=None):
-    plt.figure()
+    plt.figure(frameon=False, figsize=(6, 4.5))
 
     for experiment in tqdm(experiments):
         experiment_results = [x for x in results if x['experiment'] == experiment]
@@ -24,8 +44,6 @@ def draw_results_focal_auc(results, experiments, iterations_list, colors=None, t
             iter_results = [x for x in experiment_results if x['info']['iterations'] == iterations]
             mean_runtime = np.mean([x['info']['runtime'] for x in iter_results])
             errs = [r['f1_err'] for r in iter_results]
-            # errs.extend([r['f2_err'] for r in iter_results])
-            # errs.extend([r['f3_err'] for r in iter_results])
             errs = np.array(errs)
             errs[np.isnan(errs)] = 1.0
             AUC10 = np.mean(np.array([np.sum(errs * 100 < t) / len(errs) for t in range(1, 11)]))
@@ -37,12 +55,9 @@ def draw_results_focal_auc(results, experiments, iterations_list, colors=None, t
         else:
             plt.semilogx(xs, ys, label=experiment, marker='*', color=colors[experiment])
 
-    # title += f"Error: max(0.5 * (out['R_12_err'] + out['R_13_err']), 0.5 * (out['t_12_err'] + out['t_13_err']))"
-
-
-
     plt.xlabel('Mean runtime (ms)', fontsize=large_size)
-    plt.ylabel('$f$ AUC@0.1', fontsize=large_size)
+    plt.ylabel('mAA$_f$(0.1)', fontsize=large_size)
+    plt.ylim([0.2, 0.58])
     plt.tick_params(axis='x', which='major', labelsize=small_size)
     plt.tick_params(axis='y', which='major', labelsize=small_size)
 
@@ -51,7 +66,51 @@ def draw_results_focal_auc(results, experiments, iterations_list, colors=None, t
         plt.legend()
         plt.show()
     else:
-        plt.savefig(save)
+        # plt.savefig(save, bbox_inches='tight', pad_inches=0)
+        plt.savefig(save, pad_inches=0)
+
+
+def draw_results_focal_med(results, experiments, iterations_list, colors=None, title='', save=None):
+    plt.figure(frameon=False, figsize=(6, 4.5))
+
+    for experiment in tqdm(experiments):
+        experiment_results = [x for x in results if x['experiment'] == experiment]
+
+        xs = []
+        ys = []
+
+        for iterations in iterations_list:
+            iter_results = [x for x in experiment_results if x['info']['iterations'] == iterations]
+            mean_runtime = np.mean([x['info']['runtime'] for x in iter_results])
+            errs = [r['f1_err'] for r in iter_results]
+            errs = np.array(errs)
+            errs[np.isnan(errs)] = 1.0
+
+
+            xs.append(mean_runtime)
+            ys.append(np.median(errs))
+        if colors is None:
+            plt.semilogx(xs, ys, label=experiment, marker='*')
+        else:
+            plt.semilogx(xs, ys, label=experiment, marker='*', color=colors[experiment])
+
+    # title += f"Error: max(0.5 * (out['R_12_err'] + out['R_13_err']), 0.5 * (out['t_12_err'] + out['t_13_err']))"
+
+
+
+    plt.xlabel('Mean runtime (ms)', fontsize=large_size)
+    plt.ylabel('Median $\\xi_f$', fontsize=large_size)
+    plt.ylim([0, 0.24])
+    plt.tick_params(axis='x', which='major', labelsize=small_size)
+    plt.tick_params(axis='y', which='major', labelsize=small_size)
+
+    if not save:
+        plt.title(title, fontsize=8)
+        plt.legend()
+        plt.show()
+    else:
+        # plt.savefig(save, bbox_inches='tight', pad_inches=0)
+        plt.savefig(save, pad_inches=0)
 
 def draw_results_focal_cumdist(results, experiments, title='', save=None):
     cameras = np.unique([ntpath.basename(x['img1'].split(ntpath.sep)[0]) for x in results])
@@ -117,41 +176,6 @@ def draw_results_focal_cumdist_all(results, experiments, colors=None, title='', 
     else:
         plt.title(title, fontsize=8)
         plt.legend()
-        plt.show()
-
-def draw_results_focal_median(results, experiments, iterations_list, title='', save=None):
-    plt.figure()
-
-    for experiment in tqdm(experiments):
-        experiment_results = [x for x in results if x['experiment'] == experiment]
-
-        xs = []
-        ys = []
-
-        for iterations in iterations_list:
-            iter_results = [x for x in experiment_results if x['info']['iterations'] == iterations]
-            mean_runtime = np.mean([x['info']['runtime'] for x in iter_results])
-            errs = [r['f1_err'] for r in iter_results]
-            # errs.extend([r['f2_err'] for r in iter_results])
-            # errs.extend([r['f3_err'] for r in iter_results])
-            errs = np.array(errs)
-            errs[np.isnan(errs)] = 1.0
-
-            xs.append(mean_runtime)
-            ys.append(np.nanmedian(errs))
-
-        plt.semilogx(xs, ys, label=experiment, marker='*')
-
-    plt.title(title, fontsize=8)
-
-    plt.xlabel('Mean runtime (ms)', fontsize=large_size)
-    plt.ylabel('Median f_err', fontsize=large_size)
-    plt.tick_params(axis='x', which='major', labelsize=small_size)
-    plt.tick_params(axis='y', which='major', labelsize=small_size)
-    plt.legend()
-    if save:
-        plt.savefig(save)
-    else:
         plt.show()
 
 
@@ -238,7 +262,7 @@ def generate_graphs(dataset, results_type, case, all=True):
 
     results = []
     for basename in basenames:
-        json_path = os.path.join('results', f'focal_graph{basename}-{results_type}.json')
+        json_path = os.path.join('results', f'focal_{basename}-graph-{results_type}.json')
         print(f'json_path: {json_path}')
         with open(json_path, 'r') as f:
             if all:
@@ -249,21 +273,22 @@ def generate_graphs(dataset, results_type, case, all=True):
 
     if all:
         draw_results_focal_auc(results, experiments, iterations_list, colors=colors, save=f'figs/all_case{case}_fauc.pdf')
+        draw_results_focal_med(results, experiments, iterations_list, colors=colors, save=f'figs/all_case{case}_fmed.pdf')
 
 
-    results = []
-    for basename in basenames:
-        json_path = os.path.join('results', f'focal_{basename}-{results_type}.json')
-        print(f'json_path: {json_path}')
-        with open(json_path, 'r') as f:
-            if all:
-                results.extend([x for x in json.load(f) if x['experiment'] in experiments])
-            else:
-                results = [x for x in json.load(f) if x['experiment'] in experiments]
-                draw_results_focal_auc(results, experiments, iterations_list, f'{dataset}_{basename}_{results_type}')
-
-    if all:
-        draw_results_focal_cumdist_all(results, experiments, colors=colors, save=f'figs/all_case{case}_fcumdist.pdf')
+    # results = []
+    # for basename in basenames:
+    #     json_path = os.path.join('results', f'focal_{basename}-{results_type}.json')
+    #     print(f'json_path: {json_path}')
+    #     with open(json_path, 'r') as f:
+    #         if all:
+    #             results.extend([x for x in json.load(f) if x['experiment'] in experiments])
+    #         else:
+    #             results = [x for x in json.load(f) if x['experiment'] in experiments]
+    #             draw_results_focal_auc(results, experiments, iterations_list, f'{dataset}_{basename}_{results_type}')
+    #
+    # if all:
+    #     draw_results_focal_cumdist_all(results, experiments, colors=colors, save=f'figs/all_case{case}_fcumdist.pdf')
 
 if __name__ == '__main__':
     generate_graphs('custom_planar', 'triplets-case1-features_superpoint_noresize_2048-LG', 1, all=True)

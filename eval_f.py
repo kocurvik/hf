@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from utils.geometry import rotation_angle, angle, get_pose
 from utils.tables import print_results, print_results_summary
-from utils.vis import draw_results_focal_auc, draw_results_focal_median, \
+from utils.vis import draw_results_focal_auc, draw_results_focal_med, \
     draw_results_focal_cumdist, draw_results_focal_cumdist_all
 from utils.voting import focal_voting
 
@@ -370,7 +370,7 @@ def eval(args):
         draw_results_focal_auc(results, experiments, iterations_list, title=title + 'f AUC-0.1',
                                save=f'figs/graph_auc10f_{fig_save_name}')
         plt.show()
-        draw_results_focal_median(results, experiments, iterations_list, title=title + 'f median',
+        draw_results_focal_med(results, experiments, iterations_list, title=title + 'f median',
                                   save=f'figs/graph_medf_{fig_save_name}')
         plt.show()
     else:

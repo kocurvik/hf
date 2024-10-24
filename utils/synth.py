@@ -226,8 +226,8 @@ def get_scene(f1, f2, f3, R1, t1, R2, t2, num_pts, X=None, seed=None, **kwargs):
 
 def run_synth():
     f1 = 1600
-    R12 = Rotation.from_euler('xyz', (30, 60, 0), degrees=True).as_matrix()
-    R13 = Rotation.from_euler('xyz', (-15, -30, 0), degrees=True).as_matrix()
+    R12 = Rotation.from_euler('xyz', (0, 0, 0), degrees=True).as_matrix()
+    R13 = Rotation.from_euler('xyz', (0, 0, 0), degrees=True).as_matrix()
     c1 = np.array([2 * f1, 0, f1])
     c2 = np.array([0, f1, 0.5 * f1])
     # R = Rotation.from_euler('xyz', (theta, 30, 0), degrees=True).as_matrix()
@@ -239,8 +239,8 @@ def run_synth():
     f2 = f1
     f3 = 1200
 
-    # x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=0.8)
-    x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=0.8)
+    x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=0.8)
+    # x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=0.8)
 
     sigma = 1.5
 
@@ -277,21 +277,23 @@ def run_synth():
     pp = np.array([0, 0])
 
     # out, info = poselib.estimate_shared_focal_relative_pose(x1, x2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
-    camera2 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
-    out, info = poselib.estimate_onefocal_relative_pose(x1, x3, camera2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
-    focal = out.camera1.focal()
-    print(focal)
+    # camera2 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
+    # out, info = poselib.estimate_onefocal_relative_pose(x1, x3, camera2, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
+    # focal = out.camera1.focal()
+    # print(focal)
     # print(out.pose.R)
     # print(rotation_angle(out.pose.R.T @ R12))
     # print(angle(out.pose.t, t12))
 
 
-    # ransac_dict['use_homography'] = False
-    # ransac_dict['use_degensac'] = False
-    # ransac_dict['use_onefocal'] = True
-    # camera3 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
+    ransac_dict['use_homography'] = True
+    ransac_dict['use_degensac'] = False
+    ransac_dict['use_onefocal'] = True
+    camera3 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
     # out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict, {'max_iterations': 100, 'verbose': False})
-    # pose = out.poses
+    out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict,
+                                                            {'max_iterations': 0, 'verbose': False})
+    pose = out.poses
 
 
 

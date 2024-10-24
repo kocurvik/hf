@@ -9,7 +9,7 @@ experiments_case_2 = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p 
                        '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
 all_experiments = ['4pH + 4pH + 3vHfc1 + p3p', '4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac',
-                   '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef + p3p',  '6p Ef (pairs)']
+                   '6p Ef + p3p', '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
 
 iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
@@ -22,11 +22,12 @@ basenames_eth = ['courtyard', 'delivery_area', 'electro', 'facade', 'kicker', 'l
 basenames_eth_test = ['botanical_garden', 'boulders', 'bridge', 'door', 'exhibition_hall', 'lecture_room', 'living_room', 'lounge', 'observatory', 'old_computer', 'statue', 'terrace_2']
 basenames_cambridge = ['GreatCourt', 'KingsCollege', 'ShopFacade', 'StMarysChurch', 'OldHospital']
 basenames_aachen = ['aachen_v1.1']
-basenames_custom = ['Asphalt', 'Boats', 'Book', 'Calib', 'Facade', 'Floor', 'Papers']
+# basenames_custom = ['Asphalt', 'Boats', 'Book', 'Calib', 'Facade', 'Floor', 'Papers']
+basenames_custom = ['Asphalt', 'Boats', 'Book', 'Facade', 'Floor', 'Papers']
 
 colors = {exp: sns.color_palette("tab10")[i] for i, exp in enumerate(all_experiments)}
 
-def get_experiments(case):
+def get_experiments(case, include_pairs=False):
     if case == 1:
         experiments = experiments_case_1
     elif case == 2:
@@ -34,7 +35,8 @@ def get_experiments(case):
     else:
         raise ValueError("Wrong case number")
 
-
+    if not include_pairs:
+        experiments = [x for x in experiments if 'pairs' not in x]
 
     return experiments, colors
 
