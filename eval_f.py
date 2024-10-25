@@ -168,6 +168,8 @@ def eval_experiment(x):
     ransac_dict['use_degensac'] = 'degensac' in experiment
     ransac_dict['use_onefocal'] = '6p Ef' in experiment
 
+    ransac_dict['problem'] = case
+
     camera3 = camera_dicts[img3]
     f3 = camera3['params'][0]
 

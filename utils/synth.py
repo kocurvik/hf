@@ -226,8 +226,8 @@ def get_scene(f1, f2, f3, R1, t1, R2, t2, num_pts, X=None, seed=None, **kwargs):
 
 def run_synth():
     f1 = 1600
-    R12 = Rotation.from_euler('xyz', (0, 0, 0), degrees=True).as_matrix()
-    R13 = Rotation.from_euler('xyz', (0, 0, 0), degrees=True).as_matrix()
+    R12 = Rotation.from_euler('xyz', (-5, 60, 0), degrees=True).as_matrix()
+    R13 = Rotation.from_euler('xyz', (5, -30, 0), degrees=True).as_matrix()
     c1 = np.array([2 * f1, 0, f1])
     c2 = np.array([0, f1, 0.5 * f1])
     # R = Rotation.from_euler('xyz', (theta, 30, 0), degrees=True).as_matrix()
@@ -236,13 +236,13 @@ def run_synth():
     t13 = -R13 @ c2
     # t13 = 2 * t13 * np.linalg.norm(t12) / np.linalg.norm(t13)
 
-    f2 = f1
+    f2 = 1400
     f3 = 1200
 
-    x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=0.8)
-    # x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=0.8)
+    # x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=1.0)
+    x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=0.1)
 
-    sigma = 1.5
+    sigma = 0.0
 
     x1 += sigma * np.random.randn(*(x1.shape))
     x2 += sigma * np.random.randn(*(x1.shape))
@@ -271,7 +271,7 @@ def run_synth():
     # print(T13)
 
     ransac_dict = {'max_epipolar_error': 2.5, 'progressive_sampling': False,
-                   'min_iterations': 1000, 'max_iterations': 1000, 'lo_iterations': 25,
+                   'min_iterations': 1000, 'max_iterations': 1000, 'lo_iterations': 0,
                    'use_homography': True, 'use_degensac': False}
 
     pp = np.array([0, 0])
@@ -286,13 +286,13 @@ def run_synth():
     # print(angle(out.pose.t, t12))
 
 
-    ransac_dict['use_homography'] = True
-    ransac_dict['use_degensac'] = False
-    ransac_dict['use_onefocal'] = True
+    ransac_dict['use_homography'] = False
     camera3 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
-    # out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict, {'max_iterations': 100, 'verbose': False})
-    out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict,
-                                                            {'max_iterations': 0, 'verbose': False})
+    ransac_dict['problem'] = 4
+
+    out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
+    # out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict,
+    #                                                         {'max_iterations': 0, 'verbose': False})
     pose = out.poses
 
 
@@ -309,6 +309,9 @@ def run_synth():
 
     f1_err = np.abs(f1 - out.camera1.focal()) / f1
     print("f1 err: ", f1_err)
+
+    f2_err = np.abs(f2 - out.camera2.focal()) / f2
+    print("f2 err: ", f2_err)
 
     f3_err = np.abs(f3 - out.camera3.focal()) / f3
     print("f3 err: ", f3_err)

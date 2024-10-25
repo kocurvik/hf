@@ -11,6 +11,8 @@ experiments_case_2 = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p 
 all_experiments = ['4pH + 4pH + 3vHfc1 + p3p', '4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac',
                    '6p Ef + p3p', '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
+experiments_case34 = ['4pH + 4pH + 3vHfc3 + p3p', '4pH + 4pH + 3vHfc4 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac', '6p Ef + p4pf']
+
 
 iterations_list = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
 
@@ -26,6 +28,7 @@ basenames_aachen = ['aachen_v1.1']
 basenames_custom = ['Asphalt', 'Boats', 'Book', 'Facade', 'Floor', 'Papers']
 
 colors = {exp: sns.color_palette("tab10")[i] for i, exp in enumerate(all_experiments)}
+colors.update({exp: sns.color_palette("tab10")[i] for i, exp in enumerate(experiments_case34)})
 
 def get_experiments(case, include_pairs=False):
     if case == 1:
