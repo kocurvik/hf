@@ -55,9 +55,9 @@ method_name_dict = {'4pH + 4pH + 3vHfc1 + p3p': '\\hr{fff} & \\textbf{ours}',
                     '6p Ef (pairs)': '\\Ef & \\cite{bujnak20093d}',
                     '4pH + 4pH + 3vHfc3 + p3p': '\\hr{f \\rho \\rho} & \\textbf{ours}',
                     '4pH + 4pH + 3vHfc4 + p3p': '\\hr{f \\rho} & \\textbf{ours}',
-                    '6p fEf + p4pf': '\\fEfrf',
-                    '6p fEf + p4pf + degensac': '\\fEfprf',
-                    '6p Ef + p4pf': '\\Efrf',
+                    '6p fEf + p4pf': '\\fEfrf & ',
+                    '6p fEf + p4pf + degensac': '\\fEfprf & ',
+                    '6p Ef + p4pf': '\\Efrf & ',
                     }
 
 
