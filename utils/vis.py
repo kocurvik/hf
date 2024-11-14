@@ -291,6 +291,7 @@ def generate_graphs(dataset, results_type, case, all=True):
     #     draw_results_focal_cumdist_all(results, experiments, colors=colors, save=f'figs/all_case{case}_fcumdist.pdf')
 
 if __name__ == '__main__':
-    generate_graphs('custom_planar', 'triplets-case1-features_superpoint_noresize_2048-LG', 1, all=True)
-    generate_graphs('custom_planar', 'triplets-case2-features_superpoint_noresize_2048-LG', 2, all=True)
+    # generate_graphs('custom_planar', 'triplets-case1-features_superpoint_noresize_2048-LG', 1, all=True)
+    # generate_graphs('custom_planar', 'triplets-case2-features_superpoint_noresize_2048-LG', 2, all=True)
+    generate_graphs('custom_planar', 'triplets-case2-features_superpoint_noresize_2048-LG-c3', 3, all=True)
 
