@@ -8,6 +8,10 @@ experiments_case_1 = ['4pH + 4pH + 3vHfc1 + p3p', '6p fEf + p3p', '6p fEf + p3p 
 experiments_case_2 = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p Ef + p3p',
                        '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
+experiments_case_3 = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac']
+
+experiments_case_4 = ['4pH + 4pH + 3vHfc4 + p3p', '6p Ef + p4pf']
+
 all_experiments = ['4pH + 4pH + 3vHfc1 + p3p', '4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac',
                    '6p Ef + p3p', '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
@@ -35,6 +39,10 @@ def get_experiments(case, include_pairs=False):
         experiments = experiments_case_1
     elif case == 2:
         experiments = experiments_case_2
+    elif case == 3:
+        experiments = experiments_case_3
+    elif case == 4:
+        experiments = experiments_case_4
     else:
         raise ValueError("Wrong case number")
 

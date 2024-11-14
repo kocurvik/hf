@@ -52,7 +52,13 @@ method_name_dict = {'4pH + 4pH + 3vHfc1 + p3p': '\\hr{fff} & \\textbf{ours}',
                     '6p fEf (pairs) + degensac': '\\fEfp & \\cite{torii2011six}',
                     '4pH + 4pH + 3vHfc2 + p3p': '\\hr{ff} & \\textbf{ours}',
                     '6p Ef + p3p': '\\Efr & ',
-                    '6p Ef (pairs)': '\\Ef & \\cite{bujnak20093d}'}
+                    '6p Ef (pairs)': '\\Ef & \\cite{bujnak20093d}',
+                    '4pH + 4pH + 3vHfc3 + p3p': '\\hr{f \\rho \\rho} & \\textbf{ours}',
+                    '4pH + 4pH + 3vHfc4 + p3p': '\\hr{f \\rho} & \\textbf{ours}',
+                    '6p fEf + p4pf': '\\fEfrf',
+                    '6p fEf + p4pf + degensac': '\\fEfprf',
+                    '6p Ef + p4pf': '\\Efrf',
+                    }
 
 
 def method_input(exp):
@@ -136,6 +142,28 @@ def eval_table():
             results2.extend(json.load(f))
 
     print_full_table(results1, results2, experiments1, experiments2)
+
+
+    experiments3, _ = get_experiments(3, include_pairs=True)
+    experiments4, _ = get_experiments(4, include_pairs=True)
+
+    scenes = get_basenames('custom_planar')
+
+    results3 = []
+    for scene in scenes:
+        res_path = f'results/focal_{scene}-triplets-case2-features_superpoint_noresize_2048-LG-c3.json'
+
+        with open(res_path, 'r') as f:
+            results3.extend(json.load(f))
+
+    results4 = []
+    # for scene in scenes:
+    #     res_path = f'results/focal_{scene}-triplets-case4-features_superpoint_noresize_2048-LG.json'
+    #
+    #     with open(res_path, 'r') as f:
+    #         results4.extend(json.load(f))
+
+    print_full_table(results3, results4, experiments3, experiments4)
 
 
 def format_num(i):
@@ -249,7 +277,7 @@ def dataset_table():
 
 
 if __name__ == '__main__':
-    dataset_table()
+    # dataset_table()
     # print(20 * "*")
-    # eval_table()
+    eval_table()
 
