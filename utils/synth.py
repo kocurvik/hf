@@ -6,6 +6,23 @@ from scipy.spatial.transform import Rotation
 from utils.geometry import skew, angle, rotation_angle
 
 
+def get_fs(case):
+    f1 = 300 + np.random.rand() * 2700
+
+    if case == 1:
+        f2 = f1
+        f3 = f1
+    elif case == 2 or case == 3:
+        f2 = f1
+        f3 = 300 + np.random.rand() * 2700
+    elif case == 4:
+        f2 = 300 + np.random.rand() * 2700
+        f3 = 300 + np.random.rand() * 2700
+    else:
+        raise ValueError("Wrong case number!")
+
+    return f1, f2, f3
+
 def generate_points(num_pts, f, distance=2, depth=1, dominant_plane=0.0,  width=640, height=480):
     num_pts_plane = int(dominant_plane * num_pts)
     num_pts_other = num_pts - num_pts_plane
@@ -240,7 +257,9 @@ def run_synth():
     f3 = 1200
 
     # x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=1.0)
-    x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=0.1)
+
+    f1, f2, f3 = get_fs(4)
+    x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=1.0)
 
     sigma = 0.0
 
@@ -335,3 +354,4 @@ if __name__ == '__main__':
 
     print(f"Mean f_err: {np.mean(f_errs)} - Median f_err: {np.nanmedian(f_errs)}")
     print(f"Mean IR: {np.mean(inlier_ratios)} - Median IR: {np.nanmedian(inlier_ratios)}")
+

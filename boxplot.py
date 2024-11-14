@@ -5,13 +5,12 @@ import pandas as pd
 import seaborn as sns
 import poselib
 from matplotlib import pyplot as plt
-from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from matplotlib import rc
 
 from dataset_utils.data import colors
 # from utils.custom_boxplot import custom_dodge_boxplot
-from utils.synth import get_scene, get_random_scene
+from utils.synth import get_random_scene, get_fs
 
 
 def shuffle_portion(x_list, s):
@@ -205,23 +204,6 @@ def run_method_case4(x):
     return res
 
 eval_funcs = {1: run_methods, 2: run_methods_case2, 3: run_method_case3, 4: run_method_case4}
-
-def get_fs(case):
-    f1 = 300 + np.random.rand() * 2700
-
-    if case == 1:
-        f2 = f1
-        f3 = f1
-    elif case == 2 or case == 3:
-        f2 = f1
-        f3 = 300 + np.random.rand() * 2700
-    elif case == 4:
-        f2 = 300 + np.random.rand() * 2700
-        f3 = 300 + np.random.rand() * 2700
-    else:
-        raise ValueError("Wrong case number!")
-
-    return f1, f2, f3
 
 
 def plane_box_plot(case=1, load=True, repeats=100, legend_visible=True):
