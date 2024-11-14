@@ -164,6 +164,10 @@ def create_triplets(out_dir, img_dict, calib_dict, args, img_list=None):
     elif args.case == 2:
         for camera12, camera3 in itertools.combinations(list(img_dict.keys()), 2):
             sample_list.append([camera12, img_dict[camera12], camera12, img_dict[camera12], camera3, img_dict[camera3]])
+    # case 3 is the same as case 2
+    elif args.case == 4:
+        for camera1, camera2, camera3 in itertools.combinations(list(img_dict.keys()), 3):
+            sample_list.append([camera1, img_dict[camera1], camera2, img_dict[camera2], camera3, img_dict[camera3]])
 
     with tqdm(total=args.num_samples * len(sample_list)) as pbar:
         for camera1, list1, camera2, list2, camera3, list3 in sample_list:
