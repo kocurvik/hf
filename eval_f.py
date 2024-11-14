@@ -203,6 +203,11 @@ def eval_experiment(x):
             out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict)
             info['runtime'] = 1000 * (perf_counter() - start)
             result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
+    elif case == 3:
+        start = perf_counter()
+        out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, camera3, pp, ransac_dict)
+        info['runtime'] = 1000 * (perf_counter() - start)
+        result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
 
     result_dict['experiment'] = experiment
     result_dict['img1'] = img1
@@ -256,6 +261,9 @@ def eval(args):
     elif args.case == 2:
         experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p Ef + p3p',
                        '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
+
+    elif args.case == 3:
+        experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac']
 
     # experiments = ['6pf + p3p', '6pf + p3p + degensac']
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
