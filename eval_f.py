@@ -208,6 +208,12 @@ def eval_experiment(x):
         out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict)
         info['runtime'] = 1000 * (perf_counter() - start)
         result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
+    elif case == 4:
+        start = perf_counter()
+        out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict,
+                                                                              bundle_dict)
+        info['runtime'] = 1000 * (perf_counter() - start)
+        result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
 
     result_dict['experiment'] = experiment
     result_dict['img1'] = img1
@@ -269,7 +275,12 @@ def eval(args):
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
 
 
-    json_path = os.path.join('results', f'focal_{basename}-{matches_basename}{"-is" if args.ignore_score else ""}.json')
+    if args.case == 3:
+        json_path = os.path.join('results', f'focal_{basename}-{matches_basename}-c3{"-is" if args.ignore_score else ""}.json')
+    else:
+        json_path = os.path.join('results',
+                                 f'focal_{basename}-{matches_basename}{"-is" if args.ignore_score else ""}.json')
+
     print(f'json_path: {json_path}')
 
     if args.load:
