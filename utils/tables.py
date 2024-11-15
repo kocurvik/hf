@@ -208,7 +208,7 @@ def print_dataset_table(scenes, cameras, calib_dict, num_img_dict, num_c1_dict, 
     # print('\\bottomrule')
     print(f'\\multicolumn{{2}}{{c}}{{}} & \\multicolumn{{3}}{{|c|}}{{Total}} & {"&".join([format_num(np.sum([num_img_dict[c][s] for c in cameras])) for s in scenes])} &'
           f'{np.sum([np.sum([num_c1_dict[c][s] for c in cameras]) for s in ascenes])} &'
-          f'{np.sum([np.sum([num_c2_dict[c][s]//2 for c in cameras]) for s in ascenes])} & {np.sum([np.sum([num_c4_dict[c][s]//2 for c in cameras]) for s in ascenes])} \\\\ \\cline{{3-14}}')
+          f'{np.sum([np.sum([num_c2_dict[c][s]//2 for c in cameras]) for s in ascenes])} & {np.sum([np.sum([num_c4_dict[c][s] // 3 for c in cameras]) for s in ascenes])} \\\\ \\cline{{3-14}}')
 
     print(f'\\multicolumn{{2}}{{c}}{{}} & \\multicolumn{{3}}{{|c|}}{{Triplets \\case{{1}}}} & {"&".join([format_num(np.sum([num_c1_dict[c][s] for c in cameras])) for s in ascenes])}'
           f'& \\ding{{55}} & \\multicolumn{{2}}{{c}}{{}} \\\\ \\cline{{3-12}}')
@@ -279,6 +279,8 @@ def dataset_table():
 
             for line in c4_lines:
                 camera = line.split(" ")[0].split(ntpath.sep)[0]
+                num_c4_dict[camera][scene] += 1
+                camera = line.split(" ")[1].split(ntpath.sep)[0]
                 num_c4_dict[camera][scene] += 1
                 camera = line.split(" ")[2].split(ntpath.sep)[0]
                 num_c4_dict[camera][scene] += 1
