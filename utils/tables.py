@@ -157,11 +157,14 @@ def eval_table():
             results3.extend(json.load(f))
 
     results4 = []
-    # for scene in scenes:
-    #     res_path = f'results/focal_{scene}-triplets-case4-features_superpoint_noresize_2048-LG.json'
-    #
-    #     with open(res_path, 'r') as f:
-    #         results4.extend(json.load(f))
+    for scene in scenes:
+        res_path = f'results/focal_{scene}-triplets-case4-features_superpoint_noresize_2048-LG.json'
+
+        try:
+            with open(res_path, 'r') as f:
+                results4.extend(json.load(f))
+        except Exception:
+            ...
 
     print_full_table(results3, results4, experiments3, experiments4)
 
@@ -244,6 +247,7 @@ def dataset_table():
 
     num_c1_dict = {k:{x: 0 for x in scenes} for k in cameras}
     num_c2_dict = {k:{x: 0 for x in scenes} for k in cameras}
+    num_c4_dict = {k:{x: 0 for x in scenes} for k in cameras}
 
     for scene in scenes:
         c1_matches_path = os.path.join(matches_path, scene, 'triplets-case1-features_superpoint_noresize_2048-LG.txt')
@@ -255,14 +259,6 @@ def dataset_table():
             num_c1_dict[camera][scene] += 1
 
     for scene in scenes:
-        c1_matches_path = os.path.join(matches_path, scene, 'triplets-case1-features_superpoint_noresize_2048-LG.txt')
-        with open(c1_matches_path, 'r') as f:
-            c1_lines = f.readlines();
-
-        for line in c1_lines:
-            camera = line.split(" ")[0].split(ntpath.sep)[0]
-            num_c1_dict[camera][scene] += 1
-
         c2_matches_path = os.path.join(matches_path, scene, 'triplets-case2-features_superpoint_noresize_2048-LG.txt')
         with open(c2_matches_path, 'r') as f:
             c2_lines = f.readlines();
@@ -273,11 +269,26 @@ def dataset_table():
             camera = line.split(" ")[2].split(ntpath.sep)[0]
             num_c2_dict[camera][scene] += 1
 
+    for scene in scenes:
+        c4_matches_path = os.path.join(matches_path, scene, 'triplets-case4-features_superpoint_noresize_2048-LG.txt')
+        try:
+            with open(c4_matches_path, 'r') as f:
+                c4_lines = f.readlines();
+
+            for line in c4_lines:
+                camera = line.split(" ")[0].split(ntpath.sep)[0]
+                num_c4_dict[camera][scene] += 1
+                camera = line.split(" ")[2].split(ntpath.sep)[0]
+                num_c4_dict[camera][scene] += 1
+        except Exception:
+            ...
+
+
     print_dataset_table(scenes, cameras, calib_dict, num_img_dict, num_c1_dict, num_c2_dict)
 
 
 if __name__ == '__main__':
-    # dataset_table()
+    dataset_table()
     # print(20 * "*")
     eval_table()
 
