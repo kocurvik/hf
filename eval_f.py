@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument('-g', '--graph', action='store_true', default=False)
     parser.add_argument('-a', '--append', action='store_true', default=False)
     parser.add_argument('-is', '--ignore_score', action='store_true', default=False)
+    parser.add_argument('--oracle', action='store_true', default=False)
     parser.add_argument('--nlo', action='store_true', default=False)
     parser.add_argument('--all', action='store_true', default=False)
     parser.add_argument('feature_file')
@@ -165,6 +166,18 @@ def eval_experiment(x):
 
     ransac_dict['lo_iterations'] = find_val('LO', experiment, int, default=25)
 
+    fo = find_val('FO', experiment, float, default=0.0)
+
+    ransac_dict['f_oracle_threshold'] = fo
+    if fo:
+        # ransac_dict['f1_gt'] = camera_dicts[img1]['params'][0]
+        # ransac_dict['f2_gt'] = camera_dicts[img2]['params'][0]
+        # ransac_dict['f3_gt'] = camera_dicts[img3]['params'][0]
+        ransac_dict['f1_gt'] = 1.2 * max(camera_dicts[img1]['width'], camera_dicts[img1]['height'])
+        ransac_dict['f2_gt'] = 1.2 * max(camera_dicts[img2]['width'], camera_dicts[img2]['height'])
+        ransac_dict['f3_gt'] = 1.2 * max(camera_dicts[img3]['width'], camera_dicts[img3]['height'])
+
+
     ransac_dict['use_degensac'] = 'degensac' in experiment
     ransac_dict['use_onefocal'] = '6p Ef' in experiment
 
@@ -276,6 +289,9 @@ def eval(args):
 
     if args.nlo:
         experiments = [f'{x} + LO(0)' for x in experiments]
+
+    if args.oracle:
+        experiments = [f'{x} + FO(0.3)' for x in experiments]
     # experiments = ['6pf + p3p', '6pf + p3p + degensac']
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
 
