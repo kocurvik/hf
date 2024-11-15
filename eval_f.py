@@ -269,9 +269,9 @@ def eval(args):
                        '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
     elif args.case == 3:
-        experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac']
+        experiments = ['4pH + 4pH + 3vHfc3 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac']
     elif args.case == 4:
-        experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6p Ef + p4pf']
+        experiments = ['4pH + 4pH + 3vHfc4 + p3p', '6p Ef + p4pf']
 
     # experiments = ['6pf + p3p', '6pf + p3p + degensac']
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
