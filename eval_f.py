@@ -8,7 +8,6 @@ from time import perf_counter
 import poselib
 import h5py
 import numpy as np
-import torch
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
@@ -28,6 +27,7 @@ def parse_args():
     parser.add_argument('-g', '--graph', action='store_true', default=False)
     parser.add_argument('-a', '--append', action='store_true', default=False)
     parser.add_argument('-is', '--ignore_score', action='store_true', default=False)
+    parser.add_argument('--nlo', action='store_true', default=False)
     parser.add_argument('--all', action='store_true', default=False)
     parser.add_argument('feature_file')
     parser.add_argument('dataset_path')
@@ -137,7 +137,6 @@ def get_result_dict_f_only(f1, f2, f3, info, img1, img2, img3, K_dict):
 
 
 def eval_experiment(x):
-    torch.set_num_threads(1)
     experiment, iterations, img1, img2, img3, triplet, pair12, pair13, R_dict, T_dict, camera_dicts, case = x
 
     x1 = triplet[:, 0:2]
@@ -155,9 +154,10 @@ def eval_experiment(x):
                        'min_iterations': 100, 'max_iterations': 1000}
     else:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
-                       'min_iterations': iterations, 'max_iterations': iterations}
+                       'min_iterations': iterations, 'max_iterations': iterations,
+                       }
 
-    bundle_dict = {'verbose': False, 'max_iterations': 0 if ' LO(0)' in experiment else 100}
+    bundle_dict = {'verbose': False, 'max_iterations': 0 if 'LO(0)' in experiment else 100}
     pp = np.array(camera_dicts[img1]['params'][-2:])
 
     # ransac_dict['use_hc'] = '4p3vHCf' in experiment
@@ -270,9 +270,12 @@ def eval(args):
 
     elif args.case == 3:
         experiments = ['4pH + 4pH + 3vHfc3 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac']
+
     elif args.case == 4:
         experiments = ['4pH + 4pH + 3vHfc4 + p3p', '6p Ef + p4pf']
 
+    if args.nlo:
+        experiments = [f'{x} + LO(0)' for x in experiments]
     # experiments = ['6pf + p3p', '6pf + p3p + degensac']
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
 
