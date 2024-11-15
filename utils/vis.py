@@ -57,7 +57,7 @@ def draw_results_focal_auc(results, experiments, iterations_list, colors=None, t
 
     plt.xlabel('Mean runtime (ms)', fontsize=large_size)
     plt.ylabel('mAA$_f$(0.1)', fontsize=large_size)
-    plt.ylim([0.2, 0.58])
+    # plt.ylim([0.2, 0.58])
     plt.tick_params(axis='x', which='major', labelsize=small_size)
     plt.tick_params(axis='y', which='major', labelsize=small_size)
 
@@ -100,7 +100,7 @@ def draw_results_focal_med(results, experiments, iterations_list, colors=None, t
 
     plt.xlabel('Mean runtime (ms)', fontsize=large_size)
     plt.ylabel('Median $\\xi_f$', fontsize=large_size)
-    plt.ylim([0, 0.24])
+    # plt.ylim([0, 0.24])
     plt.tick_params(axis='x', which='major', labelsize=small_size)
     plt.tick_params(axis='y', which='major', labelsize=small_size)
 
