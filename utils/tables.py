@@ -192,23 +192,23 @@ camera_descriptions = {'DellWide': 'Dell Precision 7650 notebook camera',
  'SonyTelescopic': 'Sony $\\alpha$5000 digital camera with 55-210mm Lens'}
 
 
-def print_dataset_table(scenes, cameras, calib_dict, num_img_dict, num_c1_dict, num_c2_dict):
+def print_dataset_table(scenes, cameras, calib_dict, num_img_dict, num_c1_dict, num_c2_dict, num_c4_dict):
     ascenes = scenes[:-1]
 
-    print('\\begin{tabular}{|c|c|ccc|ccccccc|cc|}')
+    print('\\begin{tabular}{|c|c|ccc|ccccccc|ccc|}')
     print('\\cline{6-14}')
     print('\\multicolumn{5}{c}{} & \\multicolumn{7}{|c|}{Images} & \\multicolumn{2}{|c|}{Triplets} \\\\ \\hline')
-    print(f'ID & Description & FOV & Width & Height & {" & ".join(scenes)} & \\case{{1}} & \\case{{2}} \\\\ \\hline')
+    print(f'ID & Description & FOV & Width & Height & {" & ".join(scenes)} & \\case{{1}} & \\case{{2}}/III & \\case{{4}} \\\\ \\hline')
     for camera in cameras:
         print(f'{camera} & {camera_descriptions[camera]}  '
               f'& {calib_dict[camera]["fov"]:0.1f}$^\\circ$ & {calib_dict[camera]["width"]} & {calib_dict[camera]["height"]}'
               f'& {"&".join([format_num(num_img_dict[camera][s]) for s in scenes])} '
-              f'& {np.sum([num_c1_dict[camera][s] for s in ascenes])} & {np.sum([num_c2_dict[camera][s] for s in ascenes])} \\\\ \\hline')
+              f'& {np.sum([num_c1_dict[camera][s] for s in ascenes])}  & {np.sum([num_c2_dict[camera][s] for s in ascenes])}& {np.sum([num_c4_dict[camera][s] for s in ascenes])} \\\\ \\hline')
 
     # print('\\bottomrule')
     print(f'\\multicolumn{{2}}{{c}}{{}} & \\multicolumn{{3}}{{|c|}}{{Total}} & {"&".join([format_num(np.sum([num_img_dict[c][s] for c in cameras])) for s in scenes])} &'
           f'{np.sum([np.sum([num_c1_dict[c][s] for c in cameras]) for s in ascenes])} &'
-          f'{np.sum([np.sum([num_c2_dict[c][s]//2 for c in cameras]) for s in ascenes])} \\\\ \\cline{{3-14}}')
+          f'{np.sum([np.sum([num_c2_dict[c][s]//2 for c in cameras]) for s in ascenes])} & {np.sum([np.sum([num_c4_dict[c][s]//2 for c in cameras]) for s in ascenes])} \\\\ \\cline{{3-14}}')
 
     print(f'\\multicolumn{{2}}{{c}}{{}} & \\multicolumn{{3}}{{|c|}}{{Triplets \\case{{1}}}} & {"&".join([format_num(np.sum([num_c1_dict[c][s] for c in cameras])) for s in ascenes])}'
           f'& \\ding{{55}} & \\multicolumn{{2}}{{c}}{{}} \\\\ \\cline{{3-12}}')
@@ -221,8 +221,8 @@ def print_dataset_table(scenes, cameras, calib_dict, num_img_dict, num_c1_dict, 
 
 
 def dataset_table():
-    dataset_path = '/mnt/d/Research/data/H3vf/sym_scenes'
-    matches_path = '/mnt/d/Research/data/H3vf/sym_matches'
+    dataset_path = '/home/kocurvik/data/H3vf/sym_scenes'
+    matches_path = '/home/kocurvik/data/H3vf/sym_matches'
     scene_dict = {}
 
     cameras = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x))]
@@ -284,7 +284,7 @@ def dataset_table():
             ...
 
 
-    print_dataset_table(scenes, cameras, calib_dict, num_img_dict, num_c1_dict, num_c2_dict)
+    print_dataset_table(scenes, cameras, calib_dict, num_img_dict, num_c1_dict, num_c2_dict, num_c4_dict)
 
 
 if __name__ == '__main__':
