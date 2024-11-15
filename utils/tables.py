@@ -5,7 +5,7 @@ import os
 import numpy as np
 from prettytable import PrettyTable
 
-from dataset_utils.data import get_experiments, get_basenames, is_image
+from dataset_utils.data import get_experiments, get_basenames, is_image, err_f1, err_f1f2
 
 
 def print_results(results):
@@ -68,29 +68,29 @@ def method_input(exp):
     else:
         return f'{pts} triplets'
 
-def print_full_table(results1, results2, experiments1, experiments2):
+def print_full_table(results1, results2, experiments1, experiments2, cases = (1, 2), err_fun = err_f1):
 
-    print('\\begin{tabular}{|c|rc|c|ccccc|} \\cline{2-9}')
+    print('\\begin{tabular}{|l|rc|c|ccccc|} \\cline{2-9}')
     print('\\multicolumn{1}{c|}{} & \\multicolumn{2}{|c|}{Method} & Sample & Median $\\xi_f$ & Mean $\\xi_f$ & mAA$_f$(0.1) & mAA$_f$(0.2) & Runtime (ms) \\\\ \\hline')
 
-    print('\\multirow{', len(experiments1), '}{*}{\\rotatebox[origin=c]{90}{\\case{1}}}')
-    print_rows(experiments1, results1)
+    print('\\multirow{', len(experiments1), '}{*}{\\rotatebox[origin=c]{90}{\\case{', cases[0] ,'}}}')
+    print_rows(experiments1, results1, err_fun)
 
     print('\\hline')
 
-    print('\\multirow{', len(experiments2), '}{*}{\\rotatebox[origin=c]{90}{\\case{2}}}')
-    print_rows(experiments2, results2)
+    print('\\multirow{', len(experiments2), '}{*}{\\rotatebox[origin=c]{90}{\\case{', cases[1],'}}}')
+    print_rows(experiments2, results2, err_fun)
 
     print('\\hline')
 
     print('\\end{tabular}')
 
 
-def print_rows(experiments1, results1):
+def print_rows(experiments1, results1, err_fun=err_f1):
     num_rows = []
     for i, exp in enumerate(experiments1):
         exp_res = [x for x in results1 if x['experiment'] == exp]
-        errs = np.array([r['f1_err'] for r in exp_res])
+        errs = np.array([err_fun(r) for r in exp_res])
         errs[np.isnan(errs)] = 1.0
         times = np.array([r['info']['runtime'] for r in exp_res])
         res = np.array([np.sum(errs * 100 < t) / len(errs) for t in range(1, 21)])
@@ -160,13 +160,10 @@ def eval_table():
     for scene in scenes:
         res_path = f'results/focal_{scene}-triplets-case4-features_superpoint_noresize_2048-LG.json'
 
-        try:
-            with open(res_path, 'r') as f:
-                results4.extend(json.load(f))
-        except Exception:
-            ...
+        with open(res_path, 'r') as f:
+            results4.extend(json.load(f))
 
-    print_full_table(results3, results4, experiments3, experiments4)
+    print_full_table(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = err_f1f2)
 
 
 def format_num(i):
@@ -292,7 +289,7 @@ def dataset_table():
 
 
 if __name__ == '__main__':
-    dataset_table()
+    # dataset_table()
     # print(20 * "*")
     eval_table()
 

@@ -9,7 +9,7 @@ from tqdm import tqdm
 import seaborn as sns
 
 
-from dataset_utils.data import experiments, iterations_list, get_basenames, pose_err_max, get_experiments
+from dataset_utils.data import iterations_list, get_basenames, pose_err_max, get_experiments, err_f1, err_f1f2
 
 # large_size = 12
 # small_size = 10
@@ -31,7 +31,8 @@ plt.rcParams['mathtext.rm'] = 'Times New Roman'
 plt.rcParams['mathtext.it'] = 'Times New Roman:italic'
 plt.rcParams['mathtext.bf'] = 'Times New Roman:bold'
 
-def draw_results_focal_auc(results, experiments, iterations_list, colors=None, title='', save=None):
+
+def draw_results_focal_auc(results, experiments, iterations_list, colors=None, title='', save=None, err_fun=err_f1):
     plt.figure(frameon=False, figsize=(6, 4.5))
 
     for experiment in tqdm(experiments):
@@ -43,7 +44,7 @@ def draw_results_focal_auc(results, experiments, iterations_list, colors=None, t
         for iterations in iterations_list:
             iter_results = [x for x in experiment_results if x['info']['iterations'] == iterations]
             mean_runtime = np.mean([x['info']['runtime'] for x in iter_results])
-            errs = [r['f1_err'] for r in iter_results]
+            errs = [err_fun(r) for r in iter_results]
             errs = np.array(errs)
             errs[np.isnan(errs)] = 1.0
             AUC10 = np.mean(np.array([np.sum(errs * 100 < t) / len(errs) for t in range(1, 11)]))
@@ -70,7 +71,7 @@ def draw_results_focal_auc(results, experiments, iterations_list, colors=None, t
         plt.savefig(save, pad_inches=0)
 
 
-def draw_results_focal_med(results, experiments, iterations_list, colors=None, title='', save=None):
+def draw_results_focal_med(results, experiments, iterations_list, colors=None, title='', save=None, err_fun=err_f1):
     plt.figure(frameon=False, figsize=(6, 4.5))
 
     for experiment in tqdm(experiments):
@@ -82,7 +83,7 @@ def draw_results_focal_med(results, experiments, iterations_list, colors=None, t
         for iterations in iterations_list:
             iter_results = [x for x in experiment_results if x['info']['iterations'] == iterations]
             mean_runtime = np.mean([x['info']['runtime'] for x in iter_results])
-            errs = [r['f1_err'] for r in iter_results]
+            errs = [err_fun(r) for r in iter_results]
             errs = np.array(errs)
             errs[np.isnan(errs)] = 1.0
 
@@ -256,9 +257,11 @@ def draw_results_pose_portion(results, experiments, iterations_list, title=None)
         plt.legend()
         plt.show()
 
-def generate_graphs(dataset, results_type, case, all=True):
+def generate_graphs(dataset, results_type, case, all=True, err_fun = err_f1):
     basenames = get_basenames(dataset)
     experiments, colors = get_experiments(case)
+
+    basenames = ['Asphalt']
 
     results = []
     for basename in basenames:
@@ -269,11 +272,11 @@ def generate_graphs(dataset, results_type, case, all=True):
                 results.extend([x for x in json.load(f) if x['experiment'] in experiments])
             else:
                 results = [x for x in json.load(f) if x['experiment'] in experiments]
-                draw_results_focal_auc(results, experiments, iterations_list, f'{dataset}_{basename}_{results_type}')
+                draw_results_focal_auc(results, experiments, iterations_list, f'{dataset}_{basename}_{results_type}', err_fun=err_fun)
 
     if all:
-        draw_results_focal_auc(results, experiments, iterations_list, colors=colors, save=f'figs/all_case{case}_fauc.pdf')
-        draw_results_focal_med(results, experiments, iterations_list, colors=colors, save=f'figs/all_case{case}_fmed.pdf')
+        draw_results_focal_auc(results, experiments, iterations_list, colors=colors, save=f'figs/all_case{case}_fauc.pdf', err_fun=err_fun)
+        draw_results_focal_med(results, experiments, iterations_list, colors=colors, save=f'figs/all_case{case}_fmed.pdf', err_fun=err_fun)
 
 
     # results = []
@@ -293,5 +296,6 @@ def generate_graphs(dataset, results_type, case, all=True):
 if __name__ == '__main__':
     # generate_graphs('custom_planar', 'triplets-case1-features_superpoint_noresize_2048-LG', 1, all=True)
     # generate_graphs('custom_planar', 'triplets-case2-features_superpoint_noresize_2048-LG', 2, all=True)
-    generate_graphs('custom_planar', 'triplets-case2-features_superpoint_noresize_2048-LG-c3', 3, all=True)
+    generate_graphs('custom_planar', 'triplets-case2-features_superpoint_noresize_2048-LG-c3', 3, all=True, err_fun=err_f1f2)
+    generate_graphs('custom_planar', 'triplets-case4-features_superpoint_noresize_2048-LG', 4, all=True, err_fun=err_f1f2)
 

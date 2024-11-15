@@ -1,3 +1,4 @@
+import numpy as np
 import seaborn as sns
 
 experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p', '6pf + p3p', '6pf + 5p', '4pH + 4pH + 3vHf', '6pf']
@@ -83,3 +84,11 @@ def get_basenames(dataset):
 
 def is_image(x):
     return '.jpg' in x.lower() or '.png' in x.lower() or '.jpeg' in x.lower()
+
+
+def err_f1(r):
+    return r['f1_err']
+
+
+def err_f1f2(r):
+    return np.sqrt(r['f1_err'] * r['f2_err'])
