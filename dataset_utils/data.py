@@ -8,7 +8,7 @@ experiments_case_1 = ['4pH + 4pH + 3vHfc1 + p3p', '6p fEf + p3p', '6p fEf + p3p 
 experiments_case_2 = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p Ef + p3p',
                        '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
-experiments_case_3 = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac']
+experiments_case_3 = ['4pH + 4pH + 3vHfc3 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac']
 
 experiments_case_4 = ['4pH + 4pH + 3vHfc4 + p3p', '6p Ef + p4pf']
 
