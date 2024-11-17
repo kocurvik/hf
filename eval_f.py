@@ -222,8 +222,10 @@ def eval_experiment(x):
         info['runtime'] = 1000 * (perf_counter() - start)
         result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
     elif case == 4:
+        xx1 = x1 - np.array(camera_dicts[img1]['params'][-2:])
+        xx2 = x2 - np.array(camera_dicts[img2]['params'][-2:])
         start = perf_counter()
-        out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict,
+        out, info = poselib.estimate_three_view_case2_relative_pose(xx1, xx2, x3, camera3, np.array([0, 0]), ransac_dict,
                                                                               bundle_dict)
         info['runtime'] = 1000 * (perf_counter() - start)
         result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
