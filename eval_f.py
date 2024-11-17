@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument('-l', '--load', action='store_true', default=False)
     parser.add_argument('-g', '--graph', action='store_true', default=False)
     parser.add_argument('-a', '--append', action='store_true', default=False)
+    parser.add_argument('-o', '--overwrite', action='store_true', default=False)
     parser.add_argument('-is', '--ignore_score', action='store_true', default=False)
     parser.add_argument('--oracle', action='store_true', default=False)
     parser.add_argument('--nlo', action='store_true', default=False)
@@ -383,9 +384,17 @@ def eval(args):
         print("Done")
 
     if args.append:
-        print(f"Appending from: {json_path}")
-        with open(json_path, 'r') as f:
-            prev_results = json.load(f)
+        if os.path.exists(json_path):
+            print(f"Appending from: {json_path}")
+            with open(json_path, 'r') as f:
+                prev_results = json.load(f)
+        else:
+            print("Prev file not found!")
+            prev_results = []
+
+        if args.overwrite:
+            prev_results = [x for x in prev_results if x['experiment'] not in experiments]
+
         results.extend(prev_results)
 
     for experiment in experiments:
