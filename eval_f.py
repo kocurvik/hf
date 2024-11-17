@@ -153,7 +153,7 @@ def eval_experiment(x):
     num_pts = int(experiment[0])
     if iterations is None:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
-                       'min_iterations': 100 if case < 3 else 1000, 'max_iterations': 1000 if case < 3 else 10000}
+                       'min_iterations': 100, 'max_iterations': 1000}
     else:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
                        'min_iterations': iterations, 'max_iterations': iterations,
