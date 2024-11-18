@@ -5,7 +5,7 @@ import os
 import numpy as np
 from prettytable import PrettyTable
 
-from dataset_utils.data import get_experiments, get_basenames, is_image, err_f1, err_f1f2
+from dataset_utils.data import get_experiments, get_basenames, is_image, err_f1, err_f1f2, err_f1f3
 
 
 def print_results(results):
@@ -58,6 +58,11 @@ method_name_dict = {'4pH + 4pH + 3vHfc1 + p3p': '\\hr{fff} & \\textbf{ours}',
                     '6p fEf + p4pf': '\\fEfrf & ',
                     '6p fEf + p4pf + degensac': '\\fEfprf & ',
                     '6p Ef + p4pf': '\\Efrf & ',
+                    '4pH + 4pH + 3vHfc3 + p3p + LO(0)': '\\hr{f \\rho \\rho} & \\textbf{ours}',
+                    '4pH + 4pH + 3vHfc4 + p3p + LO(0)': '\\hr{f \\rho} & \\textbf{ours}',
+                    '6p fEf + p4pf + LO(0)': '\\fEfrf & ',
+                    '6p fEf + p4pf + degensac + LO(0)': '\\fEfprf & ',
+                    '6p Ef + p4pf + LO(0)': '\\Efrf & ',
                     }
 
 
@@ -68,18 +73,18 @@ def method_input(exp):
     else:
         return f'{pts} triplets'
 
-def print_full_table(results1, results2, experiments1, experiments2, cases = (1, 2), err_fun = err_f1):
+def print_full_table(results1, results2, experiments1, experiments2, cases = (1, 2), err_fun = (err_f1, err_f1)):
 
     print('\\begin{tabular}{|l|rc|c|ccccc|} \\cline{2-9}')
     print('\\multicolumn{1}{c|}{} & \\multicolumn{2}{|c|}{Method} & Sample & Median $\\xi_f$ & Mean $\\xi_f$ & mAA$_f$(0.1) & mAA$_f$(0.2) & Runtime (ms) \\\\ \\hline')
 
     print('\\multirow{', len(experiments1), '}{*}{\\rotatebox[origin=c]{90}{\\case{', cases[0] ,'}}}')
-    print_rows(experiments1, results1, err_fun)
+    print_rows(experiments1, results1, err_fun[0])
 
     print('\\hline')
 
     print('\\multirow{', len(experiments2), '}{*}{\\rotatebox[origin=c]{90}{\\case{', cases[1],'}}}')
-    print_rows(experiments2, results2, err_fun)
+    print_rows(experiments2, results2, err_fun[1])
 
     print('\\hline')
 
@@ -163,7 +168,7 @@ def eval_table():
         with open(res_path, 'r') as f:
             results4.extend(json.load(f))
 
-    print_full_table(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = err_f1f2)
+    print_full_table(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = (err_f1f3, err_f1f2))
 
 
 def format_num(i):

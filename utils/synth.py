@@ -242,24 +242,25 @@ def get_scene(f1, f2, f3, R1, t1, R2, t2, num_pts, X=None, seed=None, **kwargs):
 
 
 def run_synth():
-    f1 = 1600
-    R12 = Rotation.from_euler('xyz', (-5, 60, 0), degrees=True).as_matrix()
-    R13 = Rotation.from_euler('xyz', (5, -30, 0), degrees=True).as_matrix()
-    c1 = np.array([2 * f1, 0, f1])
-    c2 = np.array([0, f1, 0.5 * f1])
-    # R = Rotation.from_euler('xyz', (theta, 30, 0), degrees=True).as_matrix()
-    # c = np.array([f1, y, 0])
-    t12 = -R12 @ c1
-    t13 = -R13 @ c2
-    # t13 = 2 * t13 * np.linalg.norm(t12) / np.linalg.norm(t13)
-
-    f2 = 1400
-    f3 = 1200
+    # f1 = 1600
+    # R12 = Rotation.from_euler('xyz', (-5, 60, 0), degrees=True).as_matrix()
+    # R13 = Rotation.from_euler('xyz', (5, -30, 0), degrees=True).as_matrix()
+    # c1 = np.array([2 * f1, 0, f1])
+    # c2 = np.array([0, f1, 0.5 * f1])
+    # # R = Rotation.from_euler('xyz', (theta, 30, 0), degrees=True).as_matrix()
+    # # c = np.array([f1, y, 0])
+    # t12 = -R12 @ c1
+    # t13 = -R13 @ c2
+    # # t13 = 2 * t13 * np.linalg.norm(t12) / np.linalg.norm(t13)
+    #
+    # f2 = 1400
+    # f3 = 1200
 
     # x1, x2, x3, X = get_scene(f1, f2, f3, R12, t12, R13, t13, 100, dominant_plane=1.0)
 
-    f1, f2, f3 = get_fs(4)
-    x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=1.0)
+    case = 4
+    f1, f2, f3 = get_fs(case)
+    x1, x2, x3, X = get_random_scene(f1, f2, f3, 100, dominant_plane=1.00)
 
     sigma = 0.0
 
@@ -273,16 +274,16 @@ def run_synth():
     # x2[30:60] = x2[idxs2]
 
 
-    T12 = np.diag([0, 0, 0, 1.0])
-    T12[:3, :3] = R12
-    T12[:3, 3] = t12
-    T13 = np.diag([0, 0, 0, 1.0])
-    T13[:3, :3] = R13
-    T13[:3, 3] = t13
-
-    T23 = T13 @ np.linalg.inv(T12)
-    R23 = T23[:3, :3]
-    t23 = T23[:3, 3]
+    # T12 = np.diag([0, 0, 0, 1.0])
+    # T12[:3, :3] = R12
+    # T12[:3, 3] = t12
+    # T13 = np.diag([0, 0, 0, 1.0])
+    # T13[:3, :3] = R13
+    # T13[:3, 3] = t13
+    #
+    # T23 = T13 @ np.linalg.inv(T12)
+    # R23 = T23[:3, :3]
+    # t23 = T23[:3, 3]
 
     # print("T12")
     # print(T12)
@@ -290,7 +291,7 @@ def run_synth():
     # print(T13)
 
     ransac_dict = {'max_epipolar_error': 2.5, 'progressive_sampling': False,
-                   'min_iterations': 1000, 'max_iterations': 1000, 'lo_iterations': 0,
+                   'min_iterations': 100, 'max_iterations': 100, 'lo_iterations': 0,
                    'use_homography': True, 'use_degensac': False}
 
     pp = np.array([0, 0])
@@ -305,26 +306,46 @@ def run_synth():
     # print(angle(out.pose.t, t12))
 
 
-    ransac_dict['use_homography'] = False
+    ransac_dict['use_homography'] = True
+    ransac_dict['use_degensac'] = True
     camera3 = {'model': 'SIMPLE_PINHOLE', 'width': -1, 'height': -1, 'params': [f3, 0, 0]}
-    ransac_dict['problem'] = 4
+    ransac_dict['problem'] = case
 
-    out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
+    # out, info = poselib.estimate_three_view_case2_relative_pose(x1, x2, x3, camera3, pp, ransac_dict, {'max_iterations': 0, 'verbose': False})
     # out, info = poselib.estimate_three_view_shared_focal_relative_pose(x1, x2, x3, pp, ransac_dict,
     #                                                         {'max_iterations': 0, 'verbose': False})
+    if case == 4:
+        out = poselib.sample_threeview_focal_case4(x1, x2, x3, camera3, ransac_dict)
+    else:
+        out = poselib.sample_threeview_focal_case3(x1, x2, x3, ransac_dict)
+
+    errs = []
+    for image_triplets in out:
+        if case == 3:
+            f_errs = [np.sqrt( abs(it.camera3.focal() - f3)/f3 * abs(it.camera1.focal() - f1) / f1) for it in image_triplets]
+        elif case == 4:
+            f_errs = [np.sqrt(abs(it.camera1.focal() - f1) / f1 * abs(it.camera2.focal() - f2) / f2) for it in image_triplets]
+        # f_errs = [abs(it.camera2.focal() - gt_focal_2)/gt_focal_2 for it in image_triplets]
+
+        if len(f_errs) > 0:
+            errs.append(min(f_errs))
+
+    print(errs)
+
+
     pose = out.poses
 
 
 
     # print("R errs")
-    print(rotation_angle(pose.pose12.R.T @ R12))
-    print(rotation_angle(pose.pose13.R.T @ R13))
-    print(rotation_angle(pose.pose23().R.T @ R23))
-    #
-    # print("T errs")
-    print(angle(pose.pose12.t, t12))
-    print(angle(pose.pose13.t, t13))
-    print(angle(pose.pose23().t, t23))
+    # print(rotation_angle(pose.pose12.R.T @ R12))
+    # print(rotation_angle(pose.pose13.R.T @ R13))
+    # print(rotation_angle(pose.pose23().R.T @ R23))
+    # #
+    # # print("T errs")
+    # print(angle(pose.pose12.t, t12))
+    # print(angle(pose.pose13.t, t13))
+    # print(angle(pose.pose23().t, t23))
 
     f1_err = np.abs(f1 - out.camera1.focal()) / f1
     print("f1 err: ", f1_err)

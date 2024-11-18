@@ -151,9 +151,9 @@ def run_method_case3(x):
 
     pp = np.array([0.0, 0.0])
     res = []
-    bundle_dict = {'max_iterations': 100}
+    bundle_dict = {'max_iterations': 0, 'verbose': False}
     ransac_dict = {'min_iterations': 100, 'max_iterations': 100, 'max_epipolar_error': 3.0}
-    ransac_dict['lo_iterations'] = 25
+    ransac_dict['lo_iterations'] = 0
     ransac_dict['problem'] = 3
 
     ransac_dict['use_homography'] = True
@@ -184,9 +184,9 @@ def run_method_case4(x):
 
     pp = np.array([0.0, 0.0])
     res = []
-    bundle_dict = {'max_iterations': 100}
+    bundle_dict = {'max_iterations': 0}
     ransac_dict = {'min_iterations': 100, 'max_iterations': 100, 'max_epipolar_error': 3.0}
-    ransac_dict['lo_iterations'] = 25
+    ransac_dict['lo_iterations'] = 0
     ransac_dict['problem'] = 4
 
     ransac_dict['use_homography'] = True
@@ -445,6 +445,9 @@ if __name__ == '__main__':
     noise_box_plot(case=3, dominant_portion=1.0, repeats=100, load=False)
     plt.savefig('figs/synth/case3_noise_plane10.pdf', pad_inches=0, bbox_inches='tight')
 
+    noise_box_plot(case=3, dominant_portion=0.95, repeats=100, load=False)
+    plt.savefig('figs/synth/case3_noise_plane95.pdf', pad_inches=0, bbox_inches='tight')
+
     noise_box_plot(case=3, dominant_portion=0.5, repeats=100, load=False)
     plt.savefig('figs/synth/case3_noise_plane05.pdf', pad_inches=0, bbox_inches='tight')
 
@@ -453,6 +456,9 @@ if __name__ == '__main__':
 
     noise_box_plot(case=4, dominant_portion=1.0, repeats=100, load=False)
     plt.savefig('figs/synth/case4_noise_plane10.pdf', pad_inches=0, bbox_inches='tight')
+
+    noise_box_plot(case=4, dominant_portion=0.95, repeats=100, load=False)
+    plt.savefig('figs/synth/case4_noise_plane95.pdf', pad_inches=0, bbox_inches='tight')
 
     noise_box_plot(case=4, dominant_portion=0.5, repeats=100, load=False)
     plt.savefig('figs/synth/case4_noise_plane05.pdf', pad_inches=0, bbox_inches='tight')
