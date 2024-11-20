@@ -64,13 +64,13 @@ method_name_dict = {'4pH + 4pH + 3vHfc1 + p3p': '\\hr{fff} & \\textbf{ours}',
                     '6p fEf + p4pf + LO(0)': '\\fEfrf & &',
                     '6p fEf + p4pf + degensac + LO(0)': '\\fEfprf & &',
                     '6p Ef + p4pf + LO(0)': '\\Efrf & &',
-                    '4pH + 4pH + 3vHfc3 + p3p + FO(0.3)': '\\hr{f \\rho \\rho} & \\textbf{ours} & \\multicolumn{3}{*}{35.5$^\\circ$ - 61.5$^\\circ$}',
-                    '4pH + 4pH + 3vHfc4 + p3p + FO(0.3)': '\\hr{f \\rho} & \\textbf{ours} & \\multicolumn{2}{*}{35.5$^\\circ$ - 61.5$^\\circ$}',
+                    '4pH + 4pH + 3vHfc3 + p3p + FO(0.3)': '\\cline{2-10} \\hr{f \\rho \\rho} & \\textbf{ours} & \\multirow{3}{*}{35.5$^\\circ$ - 61.5$^\\circ$}',
+                    '4pH + 4pH + 3vHfc4 + p3p + FO(0.3)': '\\cline{2-10} \\hr{f \\rho} & \\textbf{ours} & \\multirow{2}{*}{35.5$^\\circ$ - 61.5$^\\circ$}',
                     '6p fEf + p4pf + FO(0.3)': '\\fEfrf & &',
                     '6p fEf + p4pf + degensac + FO(0.3)': '\\fEfprf & &',
                     '6p Ef + p4pf + FO(0.3)': '\\Efrf & & ',
-                    '4pH + 4pH + 3vHfc3 + p3p + FR': '\\hr{f \\rho \\rho} & \\textbf{ours} & \\multicolumn{3}{*}{50$^\\circ$ - 70$^\\circ$}',
-                    '4pH + 4pH + 3vHfc4 + p3p + FR': '\\hr{f \\rho} & \\textbf{ours} &  \\multicolumn{2}{*}{50$^\\circ$ - 70$^\\circ$}',
+                    '4pH + 4pH + 3vHfc3 + p3p + FR': '\\cline{2-10} \\hr{f \\rho \\rho} & \\textbf{ours} & \\multirow{3}{*}{50$^\\circ$ - 70$^\\circ$}',
+                    '4pH + 4pH + 3vHfc4 + p3p + FR': '\\cline{2-10} \\hr{f \\rho} & \\textbf{ours} &  \\multirow{2}{*}{50$^\\circ$ - 70$^\\circ$}',
                     '6p fEf + p4pf + FR': '\\fEfrf & &',
                     '6p fEf + p4pf + degensac + FR': '\\fEfprf & &',
                     '6p Ef + p4pf + FR': '\\Efrf & &',
@@ -97,6 +97,22 @@ def print_full_table(results1, results2, experiments1, experiments2, cases = (1,
 
     print('\\multirow{', len(experiments2), '}{*}{\\rotatebox[origin=c]{90}{\\case{', cases[1],'}}}')
     print_rows(experiments2, results2, err_fun[1])
+
+    print('\\hline')
+
+    print('\\end{tabular}')
+def print_full_table_case34(results3, results4, experiments1, experiments2, cases = (1, 2), err_fun = (err_f1, err_f1)):
+
+    print('\\begin{tabular}{|l|rc|c|c|ccccc|} \\cline{2-10}')
+    print('\\multicolumn{1}{c|}{} & \\multicolumn{2}{|c|}{Method} & FOV Filtering & Sample & Median $\\xi_f$ & Mean $\\xi_f$ & mAA$_f$(0.1) & mAA$_f$(0.2) & Runtime (ms) \\\\ \\hline')
+
+    print('\\multirow{', len(experiments1), '}{*}{\\rotatebox[origin=c]{90}{\\case{', cases[0] ,'}}}')
+    print_rows(experiments1, results3, err_fun[0])
+
+    print('\\hline')
+
+    print('\\multirow{', len(experiments2), '}{*}{\\rotatebox[origin=c]{90}{\\case{', cases[1],'}}}')
+    print_rows(experiments2, results4, err_fun[1])
 
     print('\\hline')
 
