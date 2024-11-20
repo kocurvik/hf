@@ -161,13 +161,15 @@ def eval_table():
     print_full_table(results1, results2, experiments1, experiments2)
 
 
-    experiments3, _ = get_experiments(3, include_pairs=True)
-    experiments3.extend([f'{x} + FO(0.3)' for x in experiments3])
-    experiments3.extend([f'{x} + FR' for x in experiments3])
+    experiments3_b, _ = get_experiments(3, include_pairs=True)
+    experiments3 = experiments3_b.copy()
+    experiments3.extend([f'{x} + FO(0.3)' for x in experiments3_b])
+    experiments3.extend([f'{x} + FR' for x in experiments3_b])
 
-    experiments4, _ = get_experiments(4, include_pairs=True)
-    experiments4.extend([f'{x} + FO(0.3)' for x in experiments4])
-    experiments4.extend([f'{x} + FR' for x in experiments4])
+    experiments4_b, _ = get_experiments(4, include_pairs=True)
+    experiments4 = experiments4_b.copy()
+    experiments4.extend([f'{x} + FO(0.3)' for x in experiments4_b])
+    experiments4.extend([f'{x} + FR' for x in experiments4_b])
 
     scenes = get_basenames('custom_planar')
 
