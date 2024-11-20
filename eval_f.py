@@ -29,6 +29,8 @@ def parse_args():
     parser.add_argument('-o', '--overwrite', action='store_true', default=False)
     parser.add_argument('-is', '--ignore_score', action='store_true', default=False)
     parser.add_argument('--oracle', action='store_true', default=False)
+    parser.add_argument('--range', action='store_true', default=False)
+    parser.add_argument('--prior', action='store_true', default=False)
     parser.add_argument('--nlo', action='store_true', default=False)
     parser.add_argument('--all', action='store_true', default=False)
     parser.add_argument('feature_file')
@@ -136,6 +138,62 @@ def get_result_dict_f_only(f1, f2, f3, info, img1, img2, img3, K_dict):
 
 
     return d
+def get_result_dict_prior_case3(sols, img1, img2, img3, K_dict):
+    d = {}
+    d['R_12_err'] = 180
+    d['R_13_err'] = 180
+    d['R_23_err'] = 180
+
+    d['t_12_err'] = 180
+    d['t_13_err'] = 180
+    d['t_23_err'] = 180
+
+    d['P_12_err'] = max(d['R_12_err'], d['t_12_err'])
+    d['P_13_err'] = max(d['R_13_err'], d['t_13_err'])
+    d['P_23_err'] = max(d['R_23_err'], d['t_23_err'])
+
+    d['P_err_unscaled'] = max(d['P_12_err'], d['P_13_err'])
+    d['P_err'] = max([v for k, v in d.items()])
+
+    gt_focal_1 = K_dict[img1]['params'][0]
+    gt_focal_2 = K_dict[img2]['params'][0]
+    gt_focal_3 = K_dict[img3]['params'][0]
+
+    f1_prior = 1.2 * max(K_dict[img1]['width'], K_dict[img1]['height'])
+    f2_prior = 1.2 * max(K_dict[img2]['width'], K_dict[img2]['height'])
+    f3_prior = 1.2 * max(K_dict[img3]['width'], K_dict[img3]['height'])
+    
+    if sols.shape[1] == 0:
+        f1 = f1_prior
+        f2 = f2_prior
+        f3 = f3_prior
+    else:
+        f3s = sols[0, :]
+        f1s = sols[1, :]
+        f3_dists = np.abs(f3s  - f3_prior) / f3_prior
+        f1_dists = np.abs(f1s  - f1_prior) / f1_prior
+        dists = np.sqrt(f1_dists * f3_dists)
+        best_i = np.argmin(dists)
+        f3 = sols[0, best_i]
+        f1 = sols[1, best_i]
+        f2 = f1
+
+    d['f1_err'] = np.abs(gt_focal_1 - f1) / gt_focal_1
+    d['f2_err'] = np.abs(gt_focal_2 - f2) / gt_focal_2
+    d['f3_err'] = np.abs(gt_focal_3 - f3) / gt_focal_3
+
+    # mean_gt_focal = (gt_focal_1 + gt_focal_2 + gt_focal_3) / 3
+    # d['f_err'] = np.abs(mean_gt_focal - focal) / mean_gt_focal
+
+    info = {'iterations': 0}
+    if 'inlier_ratio' not in info.keys():
+        info['inlier_ratio'] = 0.0
+    if 'refinements' not in info.keys():
+        info['refinements'] = 1
+    d['info'] = info
+
+
+    return d
 
 
 def eval_experiment(x):
@@ -156,8 +214,7 @@ def eval_experiment(x):
                        'min_iterations': 100, 'max_iterations': 1000}
     else:
         ransac_dict = {'max_epipolar_error': 3.0, 'progressive_sampling': False,
-                       'min_iterations': iterations, 'max_iterations': iterations,
-                       }
+                       'min_iterations': iterations, 'max_iterations': iterations}
 
     bundle_dict = {'verbose': False, 'max_iterations': 0 if 'LO(0)' in experiment else 100}
     pp = np.array(camera_dicts[img1]['params'][-2:])
@@ -167,16 +224,25 @@ def eval_experiment(x):
 
     ransac_dict['lo_iterations'] = find_val('LO', experiment, int, default=25)
 
-    fo = find_val('FO', experiment, float, default=0.0)
+    if '+ FR' in experiment:
+        # this sets the range to 50-70 deg FOV
+        c = 0.89316373181 # (1/tan(35 deg) + 1/tan(25deg)) / 4
+        fo = 0.20051164424 # 1 - 1 / (2 * c * tan(25 deg))
+        ransac_dict['f1_gt'] = c * max(camera_dicts[img1]['width'], camera_dicts[img1]['height'])
+        ransac_dict['f2_gt'] = c * max(camera_dicts[img2]['width'], camera_dicts[img2]['height'])
+        ransac_dict['f3_gt'] = c * max(camera_dicts[img3]['width'], camera_dicts[img3]['height'])
+        ransac_dict['f_oracle_threshold'] = fo
+    else:
+        fo = find_val('FO', experiment, float, default=0.0)
 
-    ransac_dict['f_oracle_threshold'] = fo
-    if fo:
-        # ransac_dict['f1_gt'] = camera_dicts[img1]['params'][0]
-        # ransac_dict['f2_gt'] = camera_dicts[img2]['params'][0]
-        # ransac_dict['f3_gt'] = camera_dicts[img3]['params'][0]
-        ransac_dict['f1_gt'] = 1.2 * max(camera_dicts[img1]['width'], camera_dicts[img1]['height'])
-        ransac_dict['f2_gt'] = 1.2 * max(camera_dicts[img2]['width'], camera_dicts[img2]['height'])
-        ransac_dict['f3_gt'] = 1.2 * max(camera_dicts[img3]['width'], camera_dicts[img3]['height'])
+        ransac_dict['f_oracle_threshold'] = fo
+        if fo:
+            # ransac_dict['f1_gt'] = camera_dicts[img1]['params'][0]
+            # ransac_dict['f2_gt'] = camera_dicts[img2]['params'][0]
+            # ransac_dict['f3_gt'] = camera_dicts[img3]['params'][0]
+            ransac_dict['f1_gt'] = 1.2 * max(camera_dicts[img1]['width'], camera_dicts[img1]['height'])
+            ransac_dict['f2_gt'] = 1.2 * max(camera_dicts[img2]['width'], camera_dicts[img2]['height'])
+            ransac_dict['f3_gt'] = 1.2 * max(camera_dicts[img3]['width'], camera_dicts[img3]['height'])
 
 
     ransac_dict['use_degensac'] = 'degensac' in experiment
@@ -221,10 +287,23 @@ def eval_experiment(x):
         xx1 = x1 - np.array(camera_dicts[img1]['params'][-2:])
         xx2 = x2 - np.array(camera_dicts[img2]['params'][-2:])
         xx3 = x3 - np.array(camera_dicts[img3]['params'][-2:])
-        start = perf_counter()
-        out, info = poselib.estimate_three_view_shared_focal_relative_pose(xx1, xx2, xx3, np.array([0.0, 0.0]), ransac_dict)
-        info['runtime'] = 1000 * (perf_counter() - start)
-        result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
+
+        scale = (np.mean(np.linalg.norm(xx1, axis=1)) + np.mean(np.linalg.norm(xx2, axis=1)) + np.mean(np.linalg.norm(xx3, axis=1))) * np.sqrt(2) / 3
+
+        if 'prior' in experiment:
+            ransac_dict['min_iterations'] = 1000
+            start = perf_counter()
+            H31, info = poselib.estimate_homography(xx3 / scale, xx1 / scale, ransac_dict)
+            H32, info = poselib.estimate_homography(xx3 / scale, xx2 / scale, ransac_dict)
+            sols = poselib.solver_H3f_case3(H31, H32)
+            result_dict = get_result_dict_prior_case3(scale * sols, img1, img2, img3, camera_dicts)
+            result_dict['info']['runtime'] = 1000 * (perf_counter() - start)
+        else:
+
+            start = perf_counter()
+            out, info = poselib.estimate_three_view_shared_focal_relative_pose(xx1, xx2, xx3, np.array([0.0, 0.0]), ransac_dict)
+            info['runtime'] = 1000 * (perf_counter() - start)
+            result_dict = get_result_dict(out, info, img1, img2, img3, R_dict, T_dict, camera_dicts)
     elif case == 4:
         xx1 = x1 - np.array(camera_dicts[img1]['params'][-2:])
         xx2 = x2 - np.array(camera_dicts[img2]['params'][-2:])
@@ -298,8 +377,17 @@ def eval(args):
 
     if args.oracle:
         experiments = [f'{x} + FO(0.3)' for x in experiments]
+
+    if args.range:
+        experiments = [f'{x} + FR' for x in experiments]
     # experiments = ['6pf + p3p', '6pf + p3p + degensac']
     # experiments = ['4pH + 4pH + 3vHf + p3p', '6pf (pairs)', '6pf (pairs) + degensac + LO(0)', '6pf (pairs) + degensac']
+
+    if args.prior:
+        if args.case == 3:
+            experiments = ['4pH + 4pH + 3vHfc3 + prior']
+        elif args.case == 4:
+            experiments = ['4pH + 4pH + 3vHfc4 + prior']
 
 
     if args.case == 3:
