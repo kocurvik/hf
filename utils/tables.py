@@ -203,7 +203,7 @@ def eval_table():
         with open(res_path, 'r') as f:
             results4.extend(json.load(f))
 
-    print_full_table(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = (err_f1f3, err_f1f2))
+    print_full_table_case34(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = (err_f1f3, err_f1f2))
 
 
 def format_num(i):
