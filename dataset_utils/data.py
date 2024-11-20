@@ -9,9 +9,9 @@ experiments_case_1 = ['4pH + 4pH + 3vHfc1 + p3p', '6p fEf + p3p', '6p fEf + p3p 
 experiments_case_2 = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p Ef + p3p',
                        '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
 
-experiments_case_3 = ['4pH + 4pH + 3vHfc3 + p3p + LO(0)', '6p fEf + p4pf + LO(0)', '6p fEf + p4pf + degensac + LO(0)']
+experiments_case_3 = ['4pH + 4pH + 3vHfc3 + p3p', '6p fEf + p4pf', '6p fEf + p4pf + degensac']
 
-experiments_case_4 = ['4pH + 4pH + 3vHfc4 + p3p + LO(0)', '6p Ef + p4pf + LO(0)']
+experiments_case_4 = ['4pH + 4pH + 3vHfc4 + p3p', '6p Ef + p4pf']
 
 all_experiments = ['4pH + 4pH + 3vHfc1 + p3p', '4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac',
                    '6p Ef + p3p', '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
@@ -93,6 +93,7 @@ def is_image(x):
 
 def err_f1(r):
     return r['f1_err']
+
 
 
 def err_f1f2(r):

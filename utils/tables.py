@@ -53,16 +53,28 @@ method_name_dict = {'4pH + 4pH + 3vHfc1 + p3p': '\\hr{fff} & \\textbf{ours}',
                     '4pH + 4pH + 3vHfc2 + p3p': '\\hr{ff} & \\textbf{ours}',
                     '6p Ef + p3p': '\\Efr & ',
                     '6p Ef (pairs)': '\\Ef & \\cite{bujnak20093d}',
-                    '4pH + 4pH + 3vHfc3 + p3p': '\\hr{f \\rho \\rho} & \\textbf{ours}',
-                    '4pH + 4pH + 3vHfc4 + p3p': '\\hr{f \\rho} & \\textbf{ours}',
-                    '6p fEf + p4pf': '\\fEfrf & ',
-                    '6p fEf + p4pf + degensac': '\\fEfprf & ',
-                    '6p Ef + p4pf': '\\Efrf & ',
-                    '4pH + 4pH + 3vHfc3 + p3p + LO(0)': '\\hr{f \\rho \\rho} & \\textbf{ours}',
-                    '4pH + 4pH + 3vHfc4 + p3p + LO(0)': '\\hr{f \\rho} & \\textbf{ours}',
-                    '6p fEf + p4pf + LO(0)': '\\fEfrf & ',
-                    '6p fEf + p4pf + degensac + LO(0)': '\\fEfprf & ',
-                    '6p Ef + p4pf + LO(0)': '\\Efrf & ',
+                    '4pH + 4pH + 3vHfc3 + p3p': '\\hr{f \\rho \\rho} & \\textbf{ours} &',
+                    '4pH + 4pH + 3vHfc3 + prior': '\\h{f \\rho \\rho} + prior & \\textbf{ours} &',
+                    '4pH + 4pH + 3vHfc4 + p3p': '\\hr{f \\rho} & \\textbf{ours} &',
+                    '6p fEf + p4pf': '\\fEfrf & &',
+                    '6p fEf + p4pf + degensac': '\\fEfprf & &',
+                    '6p Ef + p4pf': '\\Efrf & &',
+                    '4pH + 4pH + 3vHfc3 + p3p + LO(0)': '\\hr{f \\rho \\rho} & \\textbf{ours} &',
+                    '4pH + 4pH + 3vHfc4 + p3p + LO(0)': '\\hr{f \\rho} & \\textbf{ours} & ',
+                    '6p fEf + p4pf + LO(0)': '\\fEfrf & &',
+                    '6p fEf + p4pf + degensac + LO(0)': '\\fEfprf & &',
+                    '6p Ef + p4pf + LO(0)': '\\Efrf & &',
+                    '4pH + 4pH + 3vHfc3 + p3p + FO(0.3)': '\\hr{f \\rho \\rho} & \\textbf{ours} & \\multicolumn{3}{*}{35.5$^\\circ$ - 61.5$^\\circ$}',
+                    '4pH + 4pH + 3vHfc4 + p3p + FO(0.3)': '\\hr{f \\rho} & \\textbf{ours} & \\multicolumn{2}{*}{35.5$^\\circ$ - 61.5$^\\circ$}',
+                    '6p fEf + p4pf + FO(0.3)': '\\fEfrf & &',
+                    '6p fEf + p4pf + degensac + FO(0.3)': '\\fEfprf & &',
+                    '6p Ef + p4pf + FO(0.3)': '\\Efrf & & ',
+                    '4pH + 4pH + 3vHfc3 + p3p + FR': '\\hr{f \\rho \\rho} & \\textbf{ours} & \\multicolumn{3}{*}{50$^\\circ$ - 70$^\\circ$}',
+                    '4pH + 4pH + 3vHfc4 + p3p + FR': '\\hr{f \\rho} & \\textbf{ours} &  \\multicolumn{2}{*}{50$^\\circ$ - 70$^\\circ$}',
+                    '6p fEf + p4pf + FR': '\\fEfrf & &',
+                    '6p fEf + p4pf + degensac + FR': '\\fEfprf & &',
+                    '6p Ef + p4pf + FR': '\\Efrf & &',
+
                     }
 
 
@@ -150,7 +162,12 @@ def eval_table():
 
 
     experiments3, _ = get_experiments(3, include_pairs=True)
+    experiments3.extend([f'{x} + FO(0.3)' for x in experiments3])
+    experiments3.extend([f'{x} + FR' for x in experiments3])
+
     experiments4, _ = get_experiments(4, include_pairs=True)
+    experiments4.extend([f'{x} + FO(0.3)' for x in experiments4])
+    experiments4.extend([f'{x} + FR' for x in experiments4])
 
     scenes = get_basenames('custom_planar')
 
