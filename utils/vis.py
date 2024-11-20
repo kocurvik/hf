@@ -261,6 +261,9 @@ def generate_graphs(dataset, results_type, case, all=True, err_fun = err_f1):
     basenames = get_basenames(dataset)
     experiments, colors = get_experiments(case)
 
+    if case > 2:
+        experiments = [f'{x} + FR' for x in experiments]
+
     results = []
     for basename in basenames:
         json_path = os.path.join('results', f'focal_{basename}-graph-{results_type}.json')

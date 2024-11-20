@@ -37,8 +37,9 @@ basenames_custom = ['Asphalt', 'Boats', 'Book', 'Facade', 'Floor', 'Papers']
 
 colors = {exp: sns.color_palette("tab10")[i] for i, exp in enumerate(all_experiments)}
 colors.update({exp: sns.color_palette("tab10")[i] for i, exp in enumerate(experiments_case34)})
-colors.update({exp: sns.color_palette("tab10")[i] for i, exp in enumerate(experiments_case34_fo)})
-colors.update({exp: sns.color_palette("tab10")[i] for i, exp in enumerate(experiments_case34_lo)})
+colors.update({f'{exp} + LO(0)': sns.color_palette("tab10")[i] for i, exp in enumerate(experiments_case34)})
+colors.update({f'{exp} + FO(0.3)': sns.color_palette("tab10")[i] for i, exp in enumerate(experiments_case34)})
+colors.update({f'{exp} + FR': sns.color_palette("tab10")[i] for i, exp in enumerate(experiments_case34)})
 
 def get_experiments(case, include_pairs=False):
     if case == 1:
