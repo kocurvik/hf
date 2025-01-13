@@ -420,24 +420,24 @@ def f3_box_plot(case=1, dominant_portion=1.05, load=True, repeats=100, legend_vi
     # plt.show()
 
 if __name__ == '__main__':
-    # plane_box_plot(case=1, repeats=100, load=False)
-    # plt.savefig('figs/synth/case1_plane.pdf', pad_inches=0, bbox_inches='tight')
-    #
-    # noise_box_plot(case=1, dominant_portion=1.0, repeats=100, load=False)
-    # plt.savefig('figs/synth/case1_noise_plane10.pdf', pad_inches=0, bbox_inches='tight')
-    #
-    # noise_box_plot(case=1, dominant_portion=0.5, repeats=100, load=False)
-    # plt.savefig('figs/synth/case1_noise_plane05.pdf', pad_inches=0, bbox_inches='tight')
+    plane_box_plot(case=1, repeats=100, load=False)
+    plt.savefig('figs/synth/case1_plane.pdf', pad_inches=0, bbox_inches='tight')
+
+    noise_box_plot(case=1, dominant_portion=1.0, repeats=100, load=False)
+    plt.savefig('figs/synth/case1_noise_plane10.pdf', pad_inches=0, bbox_inches='tight')
+
+    noise_box_plot(case=1, dominant_portion=0.5, repeats=100, load=False)
+    plt.savefig('figs/synth/case1_noise_plane05.pdf', pad_inches=0, bbox_inches='tight')
 
 
-    # plane_box_plot(case=2, repeats=100, load=True)
-    # plt.savefig('figs/synth/case2_plane.pdf', pad_inches=0, bbox_inches='tight')
-    #
-    # noise_box_plot(case=2, dominant_portion=1.0, repeats=100, load=True)
-    # plt.savefig('figs/synth/case2_noise_plane10.pdf', pad_inches=0, bbox_inches='tight')
-    #
-    # f3_box_plot(case=2, dominant_portion=1.0, repeats=100, load=True)
-    # plt.savefig('figs/synth/case2_f3err.pdf', pad_inches=0, bbox_inches='tight')
+    plane_box_plot(case=2, repeats=100, load=True)
+    plt.savefig('figs/synth/case2_plane.pdf', pad_inches=0, bbox_inches='tight')
+
+    noise_box_plot(case=2, dominant_portion=1.0, repeats=100, load=True)
+    plt.savefig('figs/synth/case2_noise_plane10.pdf', pad_inches=0, bbox_inches='tight')
+
+    f3_box_plot(case=2, dominant_portion=1.0, repeats=100, load=True)
+    plt.savefig('figs/synth/case2_f3err.pdf', pad_inches=0, bbox_inches='tight')
 
     plane_box_plot(case=3, repeats=100, load=False)
     plt.savefig('figs/synth/case3_plane.pdf', pad_inches=0, bbox_inches='tight')
