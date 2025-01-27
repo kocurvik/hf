@@ -46,6 +46,7 @@ def print_results_summary(results, experiments):
     print(tab)
 
 method_name_dict = {'4pH + 4pH + 3vHfc1 + p3p': '\\hr{fff} & \\textbf{ours}',
+                    '4pH + 4pH + 3vHfc1 + p3p + Heikkila': '\\hr{fff} & \\cite{heikkila2017using}',
                     '6p fEf + p3p': '\\fEfr & \\cite{tzamos2023relative}',
                     '6p fEf + p3p + degensac': '\\fEfpr & ',
                     '6p fEf (pairs)': '\\fEf & \\cite{kukelova2012polynomial}',
@@ -154,54 +155,96 @@ def print_rows(experiments1, results1, err_fun=err_f1):
         print(f' & {method_name_dict[exp]} & {method_input(exp)} & {"&".join(text_rows[i])} \\\\ ')
 
 
-def eval_table():
-    experiments1, _ = get_experiments(1, include_pairs=True)
-    experiments2, _ = get_experiments(2, include_pairs=True)
+def eval_table(scenes=None, cases=(1, 2, 3, 4)):
+    if 1 in cases and 2 in cases:
+        experiments1, _ = get_experiments(1, include_pairs=True)
+        experiments2, _ = get_experiments(2, include_pairs=True)
 
-    scenes = get_basenames('custom_planar')
+        if scenes is None:
+            scenes = get_basenames('custom_planar')
 
-    results1 = []
-    for scene in scenes:
-        res_path = f'results/focal_{scene}-triplets-case1-features_superpoint_noresize_2048-LG.json'
+        results1 = []
+        for scene in scenes:
+            res_path = f'results/focal_{scene}-triplets-case1-features_superpoint_noresize_2048-LG.json'
 
-        with open(res_path, 'r') as f:
-            results1.extend(json.load(f))
+            with open(res_path, 'r') as f:
+                results1.extend(json.load(f))
 
-    results2 = []
-    for scene in scenes:
-        res_path = f'results/focal_{scene}-triplets-case2-features_superpoint_noresize_2048-LG.json'
+        results2 = []
+        for scene in scenes:
+            res_path = f'results/focal_{scene}-triplets-case2-features_superpoint_noresize_2048-LG.json'
 
-        with open(res_path, 'r') as f:
-            results2.extend(json.load(f))
+            with open(res_path, 'r') as f:
+                results2.extend(json.load(f))
 
-    print_full_table(results1, results2, experiments1, experiments2)
+        print_full_table(results1, results2, experiments1, experiments2)
 
+    if 3 in cases and 4 in cases:
+        experiments3_b, _ = get_experiments(3, include_pairs=True)
+        experiments3 = experiments3_b.copy()
+        experiments3.extend([f'{x} + FO(0.3)' for x in experiments3_b])
+        experiments3.extend([f'{x} + FR' for x in experiments3_b])
 
-    experiments3_b, _ = get_experiments(3, include_pairs=True)
-    experiments3 = experiments3_b.copy()
-    experiments3.extend([f'{x} + FO(0.3)' for x in experiments3_b])
-    experiments3.extend([f'{x} + FR' for x in experiments3_b])
+        experiments4_b, _ = get_experiments(4, include_pairs=True)
+        experiments4 = experiments4_b.copy()
+        experiments4.extend([f'{x} + FO(0.3)' for x in experiments4_b])
+        experiments4.extend([f'{x} + FR' for x in experiments4_b])
 
-    experiments4_b, _ = get_experiments(4, include_pairs=True)
-    experiments4 = experiments4_b.copy()
-    experiments4.extend([f'{x} + FO(0.3)' for x in experiments4_b])
-    experiments4.extend([f'{x} + FR' for x in experiments4_b])
+        # scenes = get_basenames('custom_planar')
 
-    scenes = get_basenames('custom_planar')
+        results3 = []
+        for scene in scenes:
+            res_path = f'results/focal_{scene}-triplets-case2-features_superpoint_noresize_2048-LG-c3.json'
 
-    results3 = []
-    for scene in scenes:
-        res_path = f'results/focal_{scene}-triplets-case2-features_superpoint_noresize_2048-LG-c3.json'
+            with open(res_path, 'r') as f:
+                results3.extend(json.load(f))
 
-        with open(res_path, 'r') as f:
-            results3.extend(json.load(f))
+        results4 = []
+        for scene in scenes:
+            res_path = f'results/focal_{scene}-triplets-case4-features_superpoint_noresize_2048-LG.json'
 
-    results4 = []
-    for scene in scenes:
-        res_path = f'results/focal_{scene}-triplets-case4-features_superpoint_noresize_2048-LG.json'
+            with open(res_path, 'r') as f:
+                results4.extend(json.load(f))
 
-        with open(res_path, 'r') as f:
-            results4.extend(json.load(f))
+        print_full_table_case34(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = (err_f1f3, err_f1f2))
+
+def eval_offplane_table():
+    experiments3, _ = get_experiments(3, include_pairs=True)
+    experiments4, _ = get_experiments(4, include_pairs=True)
+    # scenes = get_basenames('custom_planar')
+
+    res_path = f'results/focal_DinoBook-triplets-case2-features_superpoint_noresize_2048-LG-c3.json'
+
+    with open(res_path, 'r') as f:
+        results3 = json.load(f)
+
+    res_path = f'results/focal_DinoBook-triplets-case4-features_superpoint_noresize_2048-LG.json'
+
+    with open(res_path, 'r') as f:
+        results4 = json.load(f)
+
+    print_full_table_case34(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = (err_f1f3, err_f1f2))
+
+    # cameras = set([x['img1'].split(ntpath.sep)[0] for x in results4])
+    # cameras = set.union(set([x['img2'].split(ntpath.sep)[0] for x in results4]), cameras)
+    # cameras = set.union(set([x['img3'].split(ntpath.sep)[0] for x in results4]), cameras)
+
+    cameras = {'IPhoneZBHBack', 'IPhoneZBHfront', 'LenovoTabletBack', 'LenovoTabletFront', 'SamsungBack', 'SamsungFront',
+     'SamsungGlossyBack', 'SamsungGlossyFront'}
+
+    res_path = f'results/focal_Book-triplets-case2-features_superpoint_noresize_2048-LG-c3.json'
+    with open(res_path, 'r') as f:
+        results3 = json.load(f)
+
+    results3 = [x for x in results3 if {x['img1'].split(ntpath.sep)[0], x['img2'].split(ntpath.sep)[0],
+                                        x['img3'].split(ntpath.sep)[0]} <= cameras]
+
+    res_path = f'results/focal_Book-triplets-case4-features_superpoint_noresize_2048-LG.json'
+    with open(res_path, 'r') as f:
+        results4 = json.load(f)
+
+    results4 = [x for x in results4 if {x['img1'].split(ntpath.sep)[0], x['img2'].split(ntpath.sep)[0],
+                                        x['img3'].split(ntpath.sep)[0]} <= cameras]
 
     print_full_table_case34(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = (err_f1f3, err_f1f2))
 
@@ -327,9 +370,9 @@ def dataset_table():
 
     print_dataset_table(scenes, cameras, calib_dict, num_img_dict, num_c1_dict, num_c2_dict, num_c4_dict)
 
-
 if __name__ == '__main__':
     # dataset_table()
     # print(20 * "*")
     eval_table()
+    # eval_offplane_table()
 
