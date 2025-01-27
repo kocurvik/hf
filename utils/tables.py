@@ -46,7 +46,7 @@ def print_results_summary(results, experiments):
     print(tab)
 
 method_name_dict = {'4pH + 4pH + 3vHfc1 + p3p': '\\hr{fff} & \\textbf{ours}',
-                    '4pH + 4pH + 3vHfc1 + p3p + Heikkila': '\\hr{fff} & \\cite{heikkila2017using}',
+                    '4pH + 4pH + 3vHfc1 + p3p + Haikkila': '\\hr{fff} & \\cite{heikkila2017using}',
                     '6p fEf + p3p': '\\fEfr & \\cite{tzamos2023relative}',
                     '6p fEf + p3p + degensac': '\\fEfpr & ',
                     '6p fEf (pairs)': '\\fEf & \\cite{kukelova2012polynomial}',
