@@ -3,7 +3,7 @@ import seaborn as sns
 
 experiments = ['4pH + 4pH + 3vHf + scale', '4pH + 4pH + 3vHf + p3p', '6pf + p3p', '6pf + 5p', '4pH + 4pH + 3vHf', '6pf']
 
-experiments_case_1 = ['4pH + 4pH + 3vHfc1 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p fEf (pairs)',
+experiments_case_1 = ['4pH + 4pH + 3vHfc1 + p3p', '4pH + 4pH + 3vHfc1 + p3p + Heikkila', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p fEf (pairs)',
                       '6p fEf (pairs) + degensac']
 
 experiments_case_2 = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p Ef + p3p',
