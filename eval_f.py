@@ -31,6 +31,7 @@ def parse_args():
     parser.add_argument('--oracle', action='store_true', default=False)
     parser.add_argument('--range', action='store_true', default=False)
     parser.add_argument('--prior', action='store_true', default=False)
+    parser.add_argument('--rebuttal', action='store_true', default=False)
     parser.add_argument('--nlo', action='store_true', default=False)
     parser.add_argument('--all', action='store_true', default=False)
     parser.add_argument('feature_file')
@@ -224,6 +225,9 @@ def eval_experiment(x):
 
     ransac_dict['lo_iterations'] = find_val('LO', experiment, int, default=25)
 
+    if 'Haikkila' in experiment:
+        ransac_dict['use_baseline'] = True
+
     if '+ FR' in experiment:
         # this sets the range to 50-70 deg FOV
         c = 0.89316373181 # (1/tan(35 deg) + 1/tan(25deg)) / 4
@@ -361,7 +365,10 @@ def eval(args):
     if args.case == 1:
         experiments = ['4pH + 4pH + 3vHfc1 + p3p',
                        '6p fEf + p3p', '6p fEf + p3p + degensac',
-                       '6p fEf (pairs)', '6p fEf (pairs) + degensac']
+                       '6p fEf (pairs)', '6p fEf (pairs) + degensac',
+                       '4pH + 4pH + 3vHfc1 + p3p + Haikkila']
+        if args.rebuttal:
+            experiments = ['4pH + 4pH + 3vHfc1 + p3p', '4pH + 4pH + 3vHfc1 + p3p + Haikkila']
     elif args.case == 2:
         experiments = ['4pH + 4pH + 3vHfc2 + p3p', '6p fEf + p3p', '6p fEf + p3p + degensac', '6p Ef + p3p',
                        '6p fEf (pairs)', '6p fEf (pairs) + degensac', '6p Ef (pairs)']
@@ -434,6 +441,7 @@ def eval(args):
                 label = f"{img1}-{img2}-{img3}"
 
                 pts = np.array(C_file[label])
+
                 if not args.ignore_score:
                     l = np.all(pts[:, 6:] >= 0.5, axis=1)
                     triplet = pts[l, :6]
