@@ -145,9 +145,6 @@ def get_K(camera_dicts, img1):
 
 
 def eval(dataset_path, num_workers, t):
-    matches_basename = os.path.basename(args.feature_file)
-    basename = os.path.basename(dataset_path)
-
     C_file = h5py.File(os.path.join(dataset_path, 'triplets-case1-features_superpoint_noresize_2048-LG.h5'))
     triplets = get_triplets(os.path.join(dataset_path, 'triplets-case1-features_superpoint_noresize_2048-LG.txt'))
     K_file = h5py.File(os.path.join(dataset_path, 'K.h5'))
