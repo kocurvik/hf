@@ -89,12 +89,12 @@ def sampson_error(F, pts1, pts2):
 
 
 def get_proportion(x):
-    img1, img2, pair12, K1, K2, t = x
+    img1, img2, pair12, K1, K2, tr = x
 
     x1_1 = pair12[:, 0:2]
     x2_1 = pair12[:, 2:4]
 
-    ransac_dict = {'max_reproj_error': t, 'progressive_sampling': False,
+    ransac_dict = {'max_reproj_error': tr, 'progressive_sampling': False,
                    'min_iterations': 10000, 'max_iterations': 10000}
 
     H, info = poselib.estimate_homography(x1_1, x2_1, ransac_dict)
@@ -113,10 +113,10 @@ def get_proportion(x):
         R, t = pose.R, pose.t
         F = np.linalg.inv(K2).T @ skew(t) @ R @ np.linalg.inv(K1)
         distances = symmetric_epipolar_distance(F, x1_1, x2_1)
-        total_inliers_sym = np.sum(distances < t ** 2)
+        total_inliers_sym = np.sum(distances < tr ** 2)
 
         sampson_distances = sampson_error(F, x1_1, x2_1)
-        total_inliers_sampson = np.sum(sampson_distances < t)
+        total_inliers_sampson = np.sum(sampson_distances < tr)
 
         if total_inliers_sym > max_inliers_sym:
             max_inliers_sym = total_inliers_sym
