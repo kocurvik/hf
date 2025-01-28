@@ -62,22 +62,30 @@ def symmetric_epipolar_distance(F, pts1, pts2):
     return symmetric_distance
 
 
-def count_inliers(F, pts1, pts2, threshold):
+def sampson_error(F, pts1, pts2):
     """
-    Count the number of inliers based on the symmetric epipolar distance and a threshold.
+    Compute the Sampson error for each pair of points.
 
     Parameters:
     F (numpy.ndarray): 3x3 fundamental matrix.
     pts1 (numpy.ndarray): Nx2 array of points in the first image.
     pts2 (numpy.ndarray): Nx2 array of points in the second image.
-    threshold (float): Epipolar threshold for considering a point as an inlier.
 
     Returns:
-    int: Number of inliers.
+    numpy.ndarray: Array of Sampson errors for each pair of points.
     """
-    distances = symmetric_epipolar_distance(F, pts1, pts2)
-    inliers = np.sum(distances < threshold**2)
-    return inliers
+    # Convert points to homogeneous coordinates
+    pts1_h = np.hstack((pts1, np.ones((pts1.shape[0], 1))))
+    pts2_h = np.hstack((pts2, np.ones((pts2.shape[0], 1))))
+
+    # Compute the Sampson error
+    Fx1 = np.dot(F, pts1_h.T)
+    Fx2 = np.dot(F.T, pts2_h.T)
+
+    denom = Fx1[0] ** 2 + Fx1[1] ** 2 + Fx2[0] ** 2 + Fx2[1] ** 2
+    error = np.abs(np.sum(pts2_h.T * Fx1, axis=0)) / np.sqrt(denom)
+
+    return error
 
 
 def get_proportion(x):
@@ -99,20 +107,31 @@ def get_proportion(x):
 
     poses, _ = poselib.motion_from_homography(HH)
 
-    max_inliers = 0
+    max_inliers_sym = 0
+    max_inliers_sampson = 0
     for pose in poses:
         R, t = pose.R, pose.t
         F = np.linalg.inv(K2).T @ skew(t) @ R @ np.linalg.inv(K1)
-        total_inliers = count_inliers(F, x1_1, x2_1, 5.0)
-        if total_inliers > max_inliers:
-            max_inliers = total_inliers
+        distances = symmetric_epipolar_distance(F, x1_1, x2_1)
+        total_inliers_sym = np.sum(distances < 5.0 ** 2)
+
+        sampson_distances = sampson_error(F, x1_1, x2_1)
+        total_inliers_sampson = np.sum(sampson_distances < 5.0)
+
+        if total_inliers_sym > max_inliers_sym:
+            max_inliers_sym = total_inliers_sym
+
+        if total_inliers_sampson > max_inliers_sampson:
+            max_inliers_sampson = total_inliers_sampson
 
     result_dict = {}
     result_dict['img1'] = img1
     result_dict['img2'] = img2
-    result_dict['max_inliers'] = max_inliers
+    result_dict['max_inliers'] = max_inliers_sym
+    result_dict['max_inliers_sampson'] = max_inliers_sampson
     result_dict['planar_inliers'] = planar_inliers
-    result_dict['proportion'] = planar_inliers / max_inliers
+    result_dict['proportion'] = planar_inliers / max_inliers_sym
+    result_dict['proportion_sampson'] = planar_inliers / max_inliers_sampson
 
     return result_dict
 
@@ -159,9 +178,13 @@ def eval(args):
 
     print("Done")
 
+    proportions = [x['proportion_sampson'] for x in results]
+    print("Sampson Mean  : ", np.mean(proportions))
+    print("Sampson Median: ", np.median(proportions))
+
     proportions = [x['proportion'] for x in results]
-    print("Mean: ", np.mean(proportions))
-    print("Median: ", np.median(proportions))
+    print("Symm Mean     : ", np.mean(proportions))
+    print("Symm Median   : ", np.median(proportions))
 
 
 if __name__ == '__main__':
