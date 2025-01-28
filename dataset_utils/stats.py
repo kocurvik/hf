@@ -9,6 +9,7 @@ import poselib
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt
+from prettytable import PrettyTable
 from tqdm import tqdm
 
 from utils.geometry import rotation_angle, angle, get_pose, skew
@@ -16,7 +17,6 @@ from utils.geometry import rotation_angle, angle, get_pose, skew
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-nw', '--num_workers', type=int, default=1)
-    parser.add_argument('feature_file')
     parser.add_argument('dataset_path')
 
     return parser.parse_args()
@@ -89,12 +89,12 @@ def sampson_error(F, pts1, pts2):
 
 
 def get_proportion(x):
-    img1, img2, pair12, K1, K2 = x
+    img1, img2, pair12, K1, K2, t = x
 
     x1_1 = pair12[:, 0:2]
     x2_1 = pair12[:, 2:4]
 
-    ransac_dict = {'max_reproj_error': 5.0, 'progressive_sampling': False,
+    ransac_dict = {'max_reproj_error': t, 'progressive_sampling': False,
                    'min_iterations': 10000, 'max_iterations': 10000}
 
     H, info = poselib.estimate_homography(x1_1, x2_1, ransac_dict)
@@ -113,10 +113,10 @@ def get_proportion(x):
         R, t = pose.R, pose.t
         F = np.linalg.inv(K2).T @ skew(t) @ R @ np.linalg.inv(K1)
         distances = symmetric_epipolar_distance(F, x1_1, x2_1)
-        total_inliers_sym = np.sum(distances < 5.0 ** 2)
+        total_inliers_sym = np.sum(distances < t ** 2)
 
         sampson_distances = sampson_error(F, x1_1, x2_1)
-        total_inliers_sampson = np.sum(sampson_distances < 5.0)
+        total_inliers_sampson = np.sum(sampson_distances < t)
 
         if total_inliers_sym > max_inliers_sym:
             max_inliers_sym = total_inliers_sym
@@ -130,8 +130,8 @@ def get_proportion(x):
     result_dict['max_inliers'] = max_inliers_sym
     result_dict['max_inliers_sampson'] = max_inliers_sampson
     result_dict['planar_inliers'] = planar_inliers
-    result_dict['proportion'] = planar_inliers / max_inliers_sym
-    result_dict['proportion_sampson'] = planar_inliers / max_inliers_sampson
+    result_dict['proportion'] = planar_inliers / (max_inliers_sym + 1e-8)
+    result_dict['proportion_sampson'] = planar_inliers / (max_inliers_sampson + 1e-8)
 
     return result_dict
 
@@ -144,13 +144,12 @@ def get_K(camera_dicts, img1):
     return K
 
 
-def eval(args):
-    dataset_path = args.dataset_path
+def eval(dataset_path, num_workers, t):
     matches_basename = os.path.basename(args.feature_file)
     basename = os.path.basename(dataset_path)
 
-    C_file = h5py.File(os.path.join(dataset_path, f'{args.feature_file}.h5'))
-    triplets = get_triplets(os.path.join(dataset_path, f'{args.feature_file}.txt'))
+    C_file = h5py.File(os.path.join(dataset_path, 'triplets-case1-features_superpoint_noresize_2048-LG.h5'))
+    triplets = get_triplets(os.path.join(dataset_path, 'triplets-case1-features_superpoint_noresize_2048-LG.txt'))
     K_file = h5py.File(os.path.join(dataset_path, 'K.h5'))
 
     def gen_data():
@@ -165,28 +164,41 @@ def eval(args):
             K1 = np.array(K_file[img1])
             K2 = np.array(K_file[img2])
 
-            yield img1, img2, pair12, K1, K2
+            yield img1, img2, pair12, K1, K2, t
 
     total_length = len(triplets)
     print(f"Total runs: {total_length} for {len(triplets)} samples")
 
-    if args.num_workers == 1:
+    if num_workers == 1:
         results = [get_proportion(x) for x in tqdm(gen_data(), total=total_length)]
     else:
-        pool = Pool(args.num_workers)
+        pool = Pool(num_workers)
         results = [x for x in pool.imap(get_proportion, tqdm(gen_data(), total=total_length))]
 
     print("Done")
 
     proportions = [x['proportion_sampson'] for x in results]
-    print("Sampson Mean  : ", np.mean(proportions))
-    print("Sampson Median: ", np.median(proportions))
+    proportions_sampson = [x['proportion'] for x in results]
 
-    proportions = [x['proportion'] for x in results]
-    print("Symm Mean     : ", np.mean(proportions))
-    print("Symm Median   : ", np.median(proportions))
-
+    return proportions, proportions_sampson
 
 if __name__ == '__main__':
     args = parse_args()
-    eval(args)
+
+    dataset_path = args.dataset_path
+    subsets = [x for x in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, x))]
+
+    for subset in subsets:
+        tab = PrettyTable(['Threshold', 'Mean Symmetric', 'Median Symmetric', 'Mean Sampson', 'Median Sampson'])
+        tab.float_format = '0.2'
+        subset_path = os.path.join(dataset_path, subset)
+        print("*****************")
+        print("Dataset: ", subset)
+        print("*****************")
+        for t in np.arange(1, 10):
+            p, ps = eval(subset_path, args.num_workers, t)
+            tab.add_row([t, 100 * np.mean(p), 100 * np.median(p), 100 * np.mean(ps), 100 * np.median(ps)])
+
+        print(tab)
+
+
