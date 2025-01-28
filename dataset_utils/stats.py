@@ -113,10 +113,10 @@ def get_proportion(x):
         R, t = pose.R, pose.t
         F = np.linalg.inv(K2).T @ skew(t) @ R @ np.linalg.inv(K1)
         distances = symmetric_epipolar_distance(F, x1_1, x2_1)
-        total_inliers_sym = np.sum(distances < 3.81 ** 2)
+        total_inliers_sym = np.sum(distances < 3.81)
 
         sampson_distances = sampson_error(F, x1_1, x2_1)
-        total_inliers_sampson = np.sum(sampson_distances < 3.81)
+        total_inliers_sampson = np.sum(sampson_distances < np.sqrt(3.81))
 
         if total_inliers_sym > max_inliers_sym:
             max_inliers_sym = total_inliers_sym
@@ -188,7 +188,7 @@ if __name__ == '__main__':
         print("*****************")
         print("Dataset: ", subset)
         print("*****************")
-        for t in [5.99]:
+        for t in [np.sqrt(5.99)]:
             p, ps = eval(subset_path, args.num_workers, t)
             tab.add_row([t, 100 * np.mean(p), 100 * np.median(p), 100 * np.mean(ps), 100 * np.median(ps)])
 
