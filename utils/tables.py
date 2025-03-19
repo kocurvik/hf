@@ -208,7 +208,7 @@ def eval_table(scenes=None, cases=(1, 2, 3, 4)):
 
         print_full_table_case34(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = (err_f1f3, err_f1f2))
 
-def eval_offplane_table():
+def eval_offplane_table_34():
     experiments3, _ = get_experiments(3, include_pairs=True)
     experiments4, _ = get_experiments(4, include_pairs=True)
     # scenes = get_basenames('custom_planar')
@@ -248,6 +248,49 @@ def eval_offplane_table():
 
     print_full_table_case34(results3, results4, experiments3, experiments4, cases = [3, 4], err_fun = (err_f1f3, err_f1f2))
 
+def eval_offplane_table_12():
+    experiments1, _ = get_experiments(1, include_pairs=True)
+    experiments2, _ = get_experiments(2, include_pairs=True)
+    # scenes = get_basenames('custom_planar')
+
+    res_path = f'results/focal_DinoBook-triplets-case1-features_superpoint_noresize_2048-LG.json'
+
+    with open(res_path, 'r') as f:
+        results1 = json.load(f)
+
+    res_path = f'results/focal_DinoBook-triplets-case2-features_superpoint_noresize_2048-LG.json'
+
+    with open(res_path, 'r') as f:
+        results2 = json.load(f)
+
+    print("DinoBook")
+    print("********")
+    print_full_table(results1, results2, experiments1, experiments2, cases = [1, 2], err_fun = (err_f1f3, err_f1f2))
+
+    # cameras = set([x['img1'].split(ntpath.sep)[0] for x in results4])
+    # cameras = set.union(set([x['img2'].split(ntpath.sep)[0] for x in results4]), cameras)
+    # cameras = set.union(set([x['img3'].split(ntpath.sep)[0] for x in results4]), cameras)
+
+    cameras = {'IPhoneZBHBack', 'IPhoneZBHfront', 'LenovoTabletBack', 'LenovoTabletFront', 'SamsungBack', 'SamsungFront',
+     'SamsungGlossyBack', 'SamsungGlossyFront'}
+
+    res_path = f'results/focal_Book-triplets-case1-features_superpoint_noresize_2048-LG.json'
+    with open(res_path, 'r') as f:
+        results1 = json.load(f)
+
+    results1 = [x for x in results1 if {x['img1'].split(ntpath.sep)[0], x['img2'].split(ntpath.sep)[0],
+                                        x['img3'].split(ntpath.sep)[0]} <= cameras]
+
+    res_path = f'results/focal_Book-triplets-case2-features_superpoint_noresize_2048-LG.json'
+    with open(res_path, 'r') as f:
+        results2 = json.load(f)
+
+    results2 = [x for x in results2 if {x['img1'].split(ntpath.sep)[0], x['img2'].split(ntpath.sep)[0],
+                                        x['img3'].split(ntpath.sep)[0]} <= cameras]
+
+    print("Book")
+    print("****")
+    print_full_table(results1, results2, experiments1, experiments2, cases = [1, 2], err_fun = (err_f1f3, err_f1f2))
 
 def format_num(i):
     if i > 0:
@@ -374,5 +417,5 @@ if __name__ == '__main__':
     # dataset_table()
     # print(20 * "*")
     eval_table()
-    # eval_offplane_table()
+    # eval_offplane_table_12()
 

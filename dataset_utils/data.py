@@ -93,12 +93,12 @@ def is_image(x):
 
 
 def err_f1(r):
-    return r['f1_err']
+    return min(r['f1_err'], 1.0)
 
 
 
 def err_f1f2(r):
-    return np.sqrt(r['f1_err'] * r['f2_err'])
+    return min(np.sqrt(r['f1_err'] * r['f2_err']), 1.0)
 
 def err_f1f3(r):
-    return np.sqrt(r['f1_err'] * r['f3_err'])
+    return min(np.sqrt(r['f1_err'] * r['f3_err']), 1.0)
