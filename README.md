@@ -1,6 +1,6 @@
 # Three-view Focal Length Recovery From Homographies
 
-This repo contains code for paper "Three-view Focal Length Recovery From Homographies" (arxiv: TBA)
+This repo contains code for paper "Three-view Focal Length Recovery From Homographies" (CVPR 2025) Available on [CVF repository](https://openaccess.thecvf.com/content/CVPR2025/html/Ding_Three-view_Focal_Length_Recovery_From_Homographies_CVPR_2025_paper.html) or on arxiv: [2501.07499](https://arxiv.org/abs/2501.07499)
 
 ## Installation
 
@@ -33,5 +33,16 @@ done
 ```
 
 You can run the synthetic experiments using `boxplot.py`.
+
+## Citation
+```
+@inproceedings{ding2025three,
+  title={Three-view Focal Length Recovery From Homographies},
+  author={Ding, Yaqing and Kocur, Viktor and Haladov{\'a}, Zuzana Berger and Wu, Qianliang and Cai, Shen and Yang, Jian and Kukelova, Zuzana},
+  booktitle={Proceedings of the Computer Vision and Pattern Recognition Conference},
+  pages={11505--11514},
+  year={2025}
+}
+```
 
 
